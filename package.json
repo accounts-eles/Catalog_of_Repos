@@ -1,0 +1,14 @@
+{
+  "name": "repo-preview-generator",
+  "version": "1.0.0",
+  "description": "Dependencies for generating social media preview cards using Node.js, Puppeteer (headless browser), and simple-git (for cloning).",
+  "main": "generate_preview_script.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "puppeteer": "^22.15.0",
+    "rimraf": "3.0.2",
+    "simple-git": "3.24.0"
+  }
+}

@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamic GitHub Repository Catalog</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Configure Tailwind to use Inter font and simple colors  -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        'github-dark': '#24292e',
+                        'github-blue': '#0366d6',
+                        'bg-light': '#f6f8fa',
+                        'card-bg': '#ffffff',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom scrollbar styling for a cleaner look */
+        .repo-container::-webkit-scrollbar {
+            width: 8px;
+        }
+        .repo-container::-webkit-scrollbar-thumb {
+            background-color: #d1d5db; /* gray-300 */
+            border-radius: 4px;
+        }
+        .repo-container::-webkit-scrollbar-track {
+            background: #f3f4f6; /* gray-100 */
+        }
+    </style>
+</head>
+<body class="bg-bg-light min-h-screen font-sans p-4 sm:p-8">
+
+    <div class="max-w-4xl mx-auto">
+        <!-- Header and Display Info -->
+        <header class="text-center mb-8 p-6 bg-white shadow-lg rounded-xl border border-gray-100">
+            <h1 class="text-3xl font-bold text-github-dark mb-2">Public Repositories Catalog</h1>
+            <p class="text-gray-600">
+                Displaying public repositories for the user:
+                <span id="hardcodedUsernameDisplay" class="font-semibold text-github-blue"></span>
+            </p>
+        </header>
+
+        <!-- User Profile Display Section -->
+        <div id="userProfile" class="bg-white p-6 rounded-xl shadow-lg border border-gray-100 mb-8 hidden">
+            <!-- Profile content will be injected here -->
+        </div>
+        
+        <!-- Repository Search Filter -->
+        <div class="mb-6">
+             <input type="text" id="searchRepoInput" placeholder="Filter repositories by name or description..."
+                   class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-github-blue shadow-sm transition duration-150 ease-in-out text-gray-700">
+        </div>
+
+        <!-- Loading Indicator & Error Message -->
+        <div id="statusMessage" class="text-center text-lg text-gray-500 mb-4 hidden"></div>
+        
+        <!-- Repository Container -->
+        <div id="repoContainer" class="repo-container grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Repository cards will be injected here -->
+        </div>
+
+        <!-- Footer -->
+        <footer class="mt-10 text-center text-sm text-gray-500">
+            Data fetched dynamically from the GitHub REST API and local previews.
+        </footer>
+    </div>
+
+    <script>
+        // HARDCODED USERNAME (User Account Name)
+        const HARDCODED_USERNAME = 'DapaLMS1';
+        // The repository to exclude from the list, as it's the catalog itself.
+        const EXCLUDED_REPO_NAME = 'Catalog_of_Repos';
+
+        // Global state to store all fetched repositories
+        let currentRepos = []; 
+
+        const repoContainer = document.getElementById('repoContainer');
+        const statusMessage = document.getElementById('statusMessage');
+        const usernameDisplay = document.getElementById('hardcodedUsernameDisplay');
+        const searchRepoInput = document.getElementById('searchRepoInput');
+
+        // Initial setup and load
+        window.onload = () => {
+            usernameDisplay.textContent = HARDCODED_USERNAME;
+            fetchAndDisplayRepos(HARDCODED_USERNAME);
+            setupSearchListener();
+        };
+
+        // --- Core Filtering Logic ---
+        function setupSearchListener() {
+            // Filter repositories in real-time as the user types
+            searchRepoInput.addEventListener('input', handleSearch);
+        }
+
+        function handleSearch() {
+            const query = searchRepoInput.value.toLowerCase().trim();
+            
+            // Start with the full, unfiltered list stored in currentRepos
+            let reposToFilter = [...currentRepos]; 
+
+            // If the query is empty, show all repositories
+            if (!query) {
+                 renderRepoCards(reposToFilter);
+                 if (reposToFilter.length > 0) {
+                     displayStatus(`Displaying ${reposToFilter.length} public repositories for ${HARDCODED_USERNAME}:`);
+                 }
+                 return;
+            }
+
+            // Filter the global list of repositories
+            const filteredRepos = reposToFilter.filter(repo => {
+                const name = repo.name.toLowerCase();
+                const description = (repo.description || '').toLowerCase();
+                
+                // Check if the query is in the repo name OR the description
+                return name.includes(query) || description.includes(query);
+            });
+
+            renderRepoCards(filteredRepos);
+            
+            // Update status message based on search results
+            if (filteredRepos.length === 0) {
+                 displayStatus(`No repositories found matching "${query}".`, 'text-yellow-600');
+            } else {
+                 displayStatus(`Displaying ${filteredRepos.length} matching repositories:`);
+            }
+        }
+        // -----------------------------
+        
+        // Helper function to show status messages
+        function displayStatus(message, className = 'text-gray-500') {
+            statusMessage.textContent = message;
+            statusMessage.className = `text-center text-lg mb-4 ${className}`;
+            statusMessage.classList.remove('hidden');
+        }
+
+        // Function to render the user's profile card
+        function displayProfile(user) {
+            const profileElement = document.getElementById('userProfile');
+            if (user.message === 'Not Found' || !user.login) {
+                 profileElement.classList.add('hidden');
+                 return;
+            }
+
+            const name = user.name || user.login; // Use full name if available, otherwise login
+            const bio = user.bio || 'No bio provided.';
+            
+            // Location Icon (Inline SVG)
+            const locationIcon = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 mr-1"> <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" /><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" /></svg>`;
+            const locationSpan = user.location ? `<span class="flex items-center text-sm text-gray-500 mr-4">${locationIcon}${user.location}</span>` : '';
+
+            // Followers Icon (Inline SVG)
+            const followersIcon = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 mr-1"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" /></svg>`;
+            const followersSpan = user.followers ? `<span class="flex items-center text-sm text-gray-500 mr-4">${followersIcon}${user.followers} followers</span>` : '';
+            
+            // Public Repos Icon (Inline SVG)
+            const reposIcon = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 mr-1"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 21l.75-2.25m0 0-.869-2.222c-.172-.445-.6-.732-1.096-.732H5.625c-.5 0-.928.287-1.097.732L3.75 18.75m0 0-.75 2.25m7.5-2.25.75-2.25m-.75 2.25-.869-2.222c-.172-.445-.6-.732-1.096-.732H13.125c-.5 0-.928.287-1.097.732L12 18.75m-7.5 2.25.75-2.25m7.5 2.25.75-2.25m-6.75 2.25L4.5 19.5m7.5-2.25h.008v.008H12v-.008Z" /></svg>`;
+            const publicReposSpan = `<span class="flex items-center text-sm text-gray-500">${reposIcon}${user.public_repos} Public Repos</span>`;
+
+
+            profileElement.innerHTML = `
+                <div class="flex items-start">
+                    <img src="${user.avatar_url}" alt="${name} Avatar" class="w-20 h-20 rounded-full mr-5 shadow-inner">
+                    <div class="flex-grow">
+                        <h2 class="text-2xl font-bold text-github-dark">${name}</h2>
+                        <p class="text-lg text-gray-500 mb-2">@<a href="${user.html_url}" target="_blank" class="text-github-blue hover:underline">${user.login}</a></p>
+                        <p class="text-gray-700 mb-3">${bio}</p>
+                        <div class="flex flex-wrap">
+                            ${locationSpan}
+                            ${followersSpan}
+                            ${publicReposSpan}
+                        </div>
+                    </div>
+                </div>
+            `;
+            profileElement.classList.remove('hidden');
+        }
+
+        // Function to render the repository cards based on a provided array
+        function renderRepoCards(repos) {
+            repoContainer.innerHTML = ''; // Clear existing cards
+            
+            if (repos.length === 0) {
+                // Status message is handled by the calling function (fetch or search)
+                return; 
+            }
+
+            repos.forEach(repo => {
+                repoContainer.appendChild(createRepoCard(repo));
+            });
+        }
+
+        // Main function to fetch data and update the UI
+        async function fetchAndDisplayRepos(username) {
+            username = username.toLowerCase();
+            repoContainer.innerHTML = '';
+            document.getElementById('userProfile').classList.add('hidden'); // Hide profile during load
+            displayStatus(`Loading profile and repositories for ${username}...`, 'text-blue-500');
+
+            // --- CORRECTED: Use /users/ endpoint for personal accounts ---
+            const userApiUrl = `https://api.github.com/users/${username}`;
+            // Use /users/ endpoint for repositories as well, request 100 results per page (max limit)
+            const reposApiUrl = `https://api.github.com/users/${username}/repos?type=public&sort=pushed&per_page=100`; 
+            // -----------------------------------------------------------
+            
+            try {
+                // Fetch both user data and repository data concurrently
+                const [userResponse, reposResponse] = await Promise.all([
+                    fetch(userApiUrl),
+                    fetch(reposApiUrl)
+                ]);
+
+                // Check for user profile errors first (404 is the most common error for non-existent users)
+                if (userResponse.status === 404) {
+                    displayStatus(`Error: GitHub user "${username}" not found.`, 'text-red-500');
+                    return;
+                }
+                if (!userResponse.ok || !reposResponse.ok) {
+                     throw new Error('One or more API requests failed. Check if the user exists and the repository endpoint is valid.');
+                }
+
+                const userData = await userResponse.json();
+                let repoData = await reposResponse.json();
+
+                // --- CRITICAL FILTER STEP: Remove the catalog repo ---
+                const filteredRepoData = repoData
+                    .filter(repo => repo.name !== EXCLUDED_REPO_NAME);
+                
+                // Store the filtered list of repos in the global state
+                currentRepos = filteredRepoData; 
+                
+                // 1. Display Profile
+                displayProfile(userData);
+
+                // 2. Display Repositories
+                if (currentRepos.length === 0) {
+                    displayStatus(`User "${username}" has no public repositories to display.`, 'text-yellow-600');
+                } else {
+                    displayStatus(`Displaying ${currentRepos.length} public repositories for ${HARDCODED_USERNAME}:`);
+                    renderRepoCards(currentRepos); // Render all initial repos
+                }
+
+            } catch (error) {
+                console.error('Fetch error:', error);
+                // Fallback display if an error occurred during fetching
+                displayStatus(`An error occurred while fetching data. Check console for details.`, 'text-red-500');
+                document.getElementById('userProfile').classList.add('hidden');
+                currentRepos = []; // Clear current repos on error
+            }
+        }
+
+
+        // NEW HELPER: Constructs the URL to the locally generated thumbnail.
+        function getThumbnailUrl(repoName) {
+            // Path structure is relative to index.html: previews/{repoName}.png
+            return `./previews/${repoName}.png`; 
+        }
+
+        // Function to create a single repository card element
+        function createRepoCard(repo) {
+            const card = document.createElement('div');
+            // Added overflow-hidden to clip the image corners
+            card.className = 'bg-card-bg rounded-xl shadow-md hover:shadow-lg transition duration-300 border border-gray-100 flex flex-col justify-between overflow-hidden';
+            
+            // Language badge styling helper
+            const getLanguageBadge = (language) => {
+                if (!language) return '';
+                // Simple color logic based on the first letter of the language for demonstration
+                let colorClass;
+                switch (language[0]?.toLowerCase()) {
+                    case 'j': // JavaScript, Java, Jupyter...
+                        colorClass = 'bg-yellow-100 text-yellow-800';
+                        break;
+                    case 'p': // Python, PHP
+                        colorClass = 'bg-blue-100 text-blue-800';
+                        break;
+                    case 'h': // HTML
+                        colorClass = 'bg-red-100 text-red-800';
+                        break;
+                    case 'r': // React, Ruby
+                        colorClass = 'bg-cyan-100 text-cyan-800';
+                        break;
+                    case 'c': // C, C++, C#
+                        colorClass = 'bg-green-100 text-green-800';
+                        break;
+                    default:
+                        colorClass = 'bg-gray-100 text-gray-800';
+                }
+                return `<span class="inline-block px-2 py-0.5 text-xs font-medium rounded-full ${colorClass}">${language}</span>`;
+            };
+
+            // Icon for Stars (using inline SVG for no external dependencies)
+            const starIcon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4 text-yellow-500 inline-block align-middle mr-1"><path fill-rule="evenodd" d="M10.868 2.884c.321-.772 1.488-.772 1.809 0l1.087 2.618a1.15 1.15 0 0 0 1.636.568l2.81-1.405c.78-.39 1.62.198 1.422 1.054l-1.055 4.183a1.15 1.15 0 0 0 .342 1.058l3.295 3.018c.677.625.218 1.761-.743 1.968l-4.707.989a1.15 1.15 0 0 0-.916.636l-1.85 3.518c-.352.668-1.332.668-1.684 0l-1.85-3.518a1.15 1.15 0 0 0-.916-.636l-4.707-.989c-.961-.207-1.42-1.343-.743-1.968l2.81 1.405a1.15 1.15 0 0 0 1.636-.568l1.087-2.618Z" clip-rule="evenodd" /></svg>`;
+
+            // Logic to construct the GitHub Pages URL
+            const username = repo.owner.login.toLowerCase();
+            const targetUrl = `https://${username}.github.io/${repo.name}/`;
+
+            // --- THUMBNAIL IMAGE LOGIC ---
+            // 1. Point to the dynamically generated preview.png in the previews directory.
+            const thumbnailUrl = getThumbnailUrl(repo.name);
+            const placeholderUrl = `https://placehold.co/600x300/f6f8fa/24292e?text=Preview+for+${repo.name}`;
+            
+            const imageHtml = `
+                <a href="${targetUrl}" target="_blank" class="block aspect-video bg-gray-100">
+                    <img src="${thumbnailUrl}" 
+                        alt="Preview of ${repo.name}" 
+                        class="w-full h-full object-cover" 
+                        onerror="this.onerror=null; this.src='${placeholderUrl}';">
+                </a>
+            `;
+
+            // --- Card Content (wrapped in p-5) ---
+            const contentHtml = `
+                <div class="p-5 flex flex-col justify-between flex-grow">
+                    <!-- This div ensures title and description are grouped, and the stats are pushed to the bottom -->
+                    <div>
+                        <a href="${targetUrl}" target="_blank" class="block">
+                            <h2 class="text-xl font-semibold text-github-blue hover:text-blue-700 mb-2 truncate" title="${repo.name}">
+                                ${repo.name}
+                            </h2>
+                        </a>
+                        <p class="text-sm text-gray-700 mb-4 min-h-[40px]">
+                            ${repo.description ? repo.description : 'No description provided.'}
+                        </p>
+                    </div>
+                    
+                    <!-- Stats section -->
+                    <div class="flex items-center justify-between text-sm text-gray-500 mt-2">
+                        <div class="flex items-center space-x-3 flex-wrap">
+                            ${getLanguageBadge(repo.language)}
+                            ${repo.stargazers_count > 0 ? 
+                                `<span class="flex items-center">
+                                    ${starIcon}
+                                    ${repo.stargazers_count}
+                                </span>` 
+                                : ''
+                            }
+                        </div>
+                        <span class="flex-shrink-0 ml-2" title="Last updated: ${new Date(repo.pushed_at).toLocaleDateString()}">
+                            Updated ${timeSince(new Date(repo.pushed_at))} ago
+                        </span>
+                    </div>
+                </div>
+            `;
+
+            card.innerHTML = imageHtml + contentHtml;
+            return card;
+        }
+
+        // Utility function to calculate time since last push (for better UX)
+        function timeSince(date) {
+            const seconds = Math.floor((new Date() - date) / 1000);
+            let interval = seconds / 31536000;
+
+            if (interval > 1) {
+                return Math.floor(interval) + (Math.floor(interval) === 1 ? " year" : " years");
+            }
+            interval = seconds / 2592000;
+            if (interval > 1) {
+                return Math.floor(interval) + (Math.floor(interval) === 1 ? " month" : " months");
+            }
+            interval = seconds / 86400;
+            if (interval > 1) {
+                return Math.floor(interval) + (Math.floor(interval) === 1 ? " day" : " days");
+            }
+            interval = seconds / 3600;
+            if (interval > 1) {
+                return Math.floor(interval) + (Math.floor(interval) === 1 ? " hour" : " hours");
+            }
+            // Handle minutes and seconds for very recent pushes
+            interval = seconds / 60;
+            if (interval > 1) {
+                 return Math.floor(interval) + (Math.floor(interval) === 1 ? " minute" : " minutes");
+            }
+            return "just now";
+        }
+    </script>
+</body>
+</html>
