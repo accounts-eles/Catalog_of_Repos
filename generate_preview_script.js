@@ -4,10 +4,10 @@ const path = require('path');
 // This script requires Node.js v18+ for native fetch support
 
 // --- Configuration ---
-// Note: We use the organization name here, which is DapaLMS1.
-const TARGET_ORG = 'DapaLMS1';
+// Note: We use the organization name here, which is accounts-eles.
+const TARGET_ORG = 'accounts-eles';
 // FIXED: Changed the base URL to point to the live deployed GitHub Pages URL.
-// GitHub Pages URLs are case-insensitive, but typically lowercased (dapalms1.github.io).
+// GitHub Pages URLs are case-insensitive, but typically lowercased (accounts-eles.github.io).
 const GITHUB_PAGES_BASE_URL = `https://${TARGET_ORG.toLowerCase()}.github.io/`; 
 
 const OUTPUT_DIR = path.join(__dirname, 'previews');
@@ -72,9 +72,9 @@ async function fetchRepositoryNames() {
             const linkHeader = response.headers.get('link');
             hasNextPage = linkHeader && linkHeader.includes('rel="next"');
 
-            // Collect repository names, ensuring they belong to the correct user (DapaLMS1)
+            // Collect repository names, ensuring they belong to the correct user (accounts-eles)
             const names = data
-                // CRITICAL FILTER: Ensure the repo belongs to the correct user (DapaLMS1)
+                // CRITICAL FILTER: Ensure the repo belongs to the correct user (Daccounts-eles)
                 .filter(repo => repo.owner.login === TARGET_ORG)
                 // Filter out the current catalog repository
                 .filter(repo => repo.name !== 'Catalog_of_Repos')
