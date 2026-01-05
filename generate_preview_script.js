@@ -108,7 +108,7 @@ async function processRepository(repoName, browser) {
         await page.setViewport({ width: THUMBNAIL_WIDTH, height: THUMBNAIL_HEIGHT });
         
         // 2. Construct the live GitHub Pages URL
-        // Now using https://dapalms1.github.io/repoName/
+        // Now using https://accounts-eles.github.io/repoName/
         const liveUrl = `${GITHUB_PAGES_BASE_URL}${repoName}/`;
 
         console.log(`Navigating to live URL: ${liveUrl}`);
