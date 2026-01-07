@@ -36,9 +36,19 @@
         .repo-container::-webkit-scrollbar-track {
             background: #f3f4f6; /* gray-100 */
         }
+        /* Checkbox styling */
+        .repo-checkbox:checked {
+            background-color: #0366d6;
+            border-color: #0366d6;
+        }
+        .repo-card-selected {
+            border-color: #0366d6 !important;
+            ring: 2px;
+            ring-color: #0366d6;
+        }
     </style>
 </head>
-<body class="bg-bg-light min-h-screen font-sans p-4 sm:p-8">
+<body class="bg-bg-light min-h-screen font-sans p-4 sm:p-8 pb-32">
 
     <div class="max-w-4xl mx-auto">
         <!-- Header and Display Info -->
@@ -55,10 +65,15 @@
             <!-- Profile content will be injected here -->
         </div>
         
-        <!-- Repository Search Filter -->
-        <div class="mb-6">
-             <input type="text" id="searchRepoInput" placeholder="Filter repositories by name or description..."
-                   class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-github-blue shadow-sm transition duration-150 ease-in-out text-gray-700">
+        <!-- Repository Search Filter & Select All -->
+        <div class="mb-6 flex flex-col sm:flex-row gap-4 items-center">
+             <div class="relative flex-grow w-full">
+                <input type="text" id="searchRepoInput" placeholder="Filter repositories by name or description..."
+                       class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-github-blue shadow-sm transition duration-150 ease-in-out text-gray-700">
+             </div>
+             <button id="selectAllBtn" class="whitespace-nowrap px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition shadow-sm">
+                Select All
+             </button>
         </div>
 
         <!-- Loading Indicator & Error Message -->
@@ -75,76 +90,154 @@
         </footer>
     </div>
 
+    <!-- Pinned Download Action Bar -->
+    <div id="downloadBar" class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] p-4 transform translate-y-full transition-transform duration-300 ease-in-out z-50">
+        <div class="max-w-4xl mx-auto flex items-center justify-between">
+            <div>
+                <span id="selectedCount" class="font-bold text-github-blue">0</span>
+                <span class="text-gray-600 ml-1">repositories selected</span>
+            </div>
+            <div class="flex space-x-3">
+                <button id="clearSelectionBtn" class="px-4 py-2 text-sm text-gray-500 hover:text-gray-800">Clear</button>
+                <button id="downloadBundleBtn" class="flex items-center px-6 py-2 bg-github-blue text-white rounded-lg font-semibold hover:bg-blue-700 transition shadow-md">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5 mr-2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M7.5 12l4.5 4.5m0 0 4.5-4.5M12 3v13.5" />
+                    </svg>
+                    Download
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script>
-        // HARDCODED USERNAME (User Account Name)
+        // HARDCODED USERNAME
         const HARDCODED_USERNAME = 'accounts-eles';
-        // The repository to exclude from the list, as it's the catalog itself.
         const EXCLUDED_REPO_NAME = 'Catalog_of_Repos';
 
-        // Global state to store all fetched repositories
+        // Global state
         let currentRepos = []; 
+        let selectedRepoIds = new Set();
 
         const repoContainer = document.getElementById('repoContainer');
         const statusMessage = document.getElementById('statusMessage');
         const usernameDisplay = document.getElementById('hardcodedUsernameDisplay');
         const searchRepoInput = document.getElementById('searchRepoInput');
+        const downloadBar = document.getElementById('downloadBar');
+        const selectedCountDisp = document.getElementById('selectedCount');
+        const selectAllBtn = document.getElementById('selectAllBtn');
 
-        // Initial setup and load
         window.onload = () => {
             usernameDisplay.textContent = HARDCODED_USERNAME;
             fetchAndDisplayRepos(HARDCODED_USERNAME);
-            setupSearchListener();
+            setupListeners();
         };
 
-        // --- Core Filtering Logic ---
-        function setupSearchListener() {
-            // Filter repositories in real-time as the user types
+        function setupListeners() {
             searchRepoInput.addEventListener('input', handleSearch);
+            
+            selectAllBtn.addEventListener('click', () => {
+                const visibleCheckboxes = document.querySelectorAll('.repo-checkbox');
+                const allChecked = Array.from(visibleCheckboxes).every(cb => cb.checked);
+                
+                visibleCheckboxes.forEach(cb => {
+                    cb.checked = !allChecked;
+                    toggleRepoSelection(cb.dataset.id, !allChecked);
+                });
+                updateDownloadBar();
+            });
+
+            document.getElementById('clearSelectionBtn').addEventListener('click', () => {
+                selectedRepoIds.clear();
+                document.querySelectorAll('.repo-checkbox').forEach(cb => cb.checked = false);
+                updateDownloadBar();
+            });
+
+            document.getElementById('downloadBundleBtn').addEventListener('click', handleBulkDownload);
+        }
+
+        function toggleRepoSelection(repoId, isSelected) {
+            if (isSelected) {
+                selectedRepoIds.add(repoId);
+            } else {
+                selectedRepoIds.delete(repoId);
+            }
+            updateDownloadBar();
+        }
+
+        function updateDownloadBar() {
+            const count = selectedRepoIds.size;
+            selectedCountDisp.textContent = count;
+            if (count > 0) {
+                downloadBar.classList.remove('translate-y-full');
+            } else {
+                downloadBar.classList.add('translate-y-full');
+            }
+        }
+
+        async function handleBulkDownload() {
+            const btn = document.getElementById('downloadBundleBtn');
+            const originalContent = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = `<span class="animate-spin mr-2">⏳</span> Preparing files...`;
+
+            const selectedRepos = currentRepos.filter(r => selectedRepoIds.has(r.id.toString()));
+            
+            for (const repo of selectedRepos) {
+                const branch = repo.default_branch || 'main';
+                // Note: We use sequential downloads to avoid browser spam-blocking popups
+                await downloadRawFile(repo.owner.login, repo.name, branch, 'index.html');
+                await downloadRawFile(repo.owner.login, repo.name, branch, 'README.md');
+            }
+
+            btn.disabled = false;
+            btn.innerHTML = originalContent;
+        }
+
+        async function downloadRawFile(owner, repo, branch, filename) {
+            const url = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${filename}`;
+            try {
+                const resp = await fetch(url);
+                if (!resp.ok) return; // Skip if file doesn't exist
+
+                const blob = await resp.blob();
+                const blobUrl = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = blobUrl;
+                a.download = `${repo}-${filename}`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(blobUrl);
+            } catch (e) {
+                console.error(`Failed to download ${filename} for ${repo}`);
+            }
         }
 
         function handleSearch() {
             const query = searchRepoInput.value.toLowerCase().trim();
-            
-            // Start with the full, unfiltered list stored in currentRepos
             let reposToFilter = [...currentRepos]; 
 
-            // If the query is empty, show all repositories
-            if (!query) {
-                 renderRepoCards(reposToFilter);
-                 if (reposToFilter.length > 0) {
-                     displayStatus(`Displaying ${reposToFilter.length} public repositories for ${HARDCODED_USERNAME}:`);
-                 }
-                 return;
-            }
-
-            // Filter the global list of repositories
-            const filteredRepos = reposToFilter.filter(repo => {
+            const filteredRepos = query ? reposToFilter.filter(repo => {
                 const name = repo.name.toLowerCase();
                 const description = (repo.description || '').toLowerCase();
-                
-                // Check if the query is in the repo name OR the description
                 return name.includes(query) || description.includes(query);
-            });
+            }) : reposToFilter;
 
             renderRepoCards(filteredRepos);
             
-            // Update status message based on search results
-            if (filteredRepos.length === 0) {
-                 displayStatus(`No repositories found matching "${query}".`, 'text-yellow-600');
+            if (filteredRepos.length === 0 && query) {
+                displayStatus(`No repositories found matching "${query}".`, 'text-yellow-600');
             } else {
-                 displayStatus(`Displaying ${filteredRepos.length} matching repositories:`);
+                displayStatus(`Displaying ${filteredRepos.length} matching repositories:`);
             }
         }
-        // -----------------------------
         
-        // Helper function to show status messages
         function displayStatus(message, className = 'text-gray-500') {
             statusMessage.textContent = message;
             statusMessage.className = `text-center text-lg mb-4 ${className}`;
             statusMessage.classList.remove('hidden');
         }
 
-        // Function to render the user's profile card
         function displayProfile(user) {
             const profileElement = document.getElementById('userProfile');
             if (user.message === 'Not Found' || !user.login) {
@@ -152,22 +245,9 @@
                  return;
             }
 
-            const name = user.name || user.login; // Use full name if available, otherwise login
+            const name = user.name || user.login;
             const bio = user.bio || 'No bio provided.';
             
-            // Location Icon (Inline SVG)
-            const locationIcon = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 mr-1"> <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" /><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" /></svg>`;
-            const locationSpan = user.location ? `<span class="flex items-center text-sm text-gray-500 mr-4">${locationIcon}${user.location}</span>` : '';
-
-            // Followers Icon (Inline SVG)
-            const followersIcon = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 mr-1"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" /></svg>`;
-            const followersSpan = user.followers ? `<span class="flex items-center text-sm text-gray-500 mr-4">${followersIcon}${user.followers} followers</span>` : '';
-            
-            // Public Repos Icon (Inline SVG)
-            const reposIcon = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 mr-1"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 21l.75-2.25m0 0-.869-2.222c-.172-.445-.6-.732-1.096-.732H5.625c-.5 0-.928.287-1.097.732L3.75 18.75m0 0-.75 2.25m7.5-2.25.75-2.25m-.75 2.25-.869-2.222c-.172-.445-.6-.732-1.096-.732H13.125c-.5 0-.928.287-1.097.732L12 18.75m-7.5 2.25.75-2.25m7.5 2.25.75-2.25m-6.75 2.25L4.5 19.5m7.5-2.25h.008v.008H12v-.008Z" /></svg>`;
-            const publicReposSpan = `<span class="flex items-center text-sm text-gray-500">${reposIcon}${user.public_repos} Public Repos</span>`;
-
-
             profileElement.innerHTML = `
                 <div class="flex items-start">
                     <img src="${user.avatar_url}" alt="${name} Avatar" class="w-20 h-20 rounded-full mr-5 shadow-inner">
@@ -175,215 +255,108 @@
                         <h2 class="text-2xl font-bold text-github-dark">${name}</h2>
                         <p class="text-lg text-gray-500 mb-2">@<a href="${user.html_url}" target="_blank" class="text-github-blue hover:underline">${user.login}</a></p>
                         <p class="text-gray-700 mb-3">${bio}</p>
-                        <div class="flex flex-wrap">
-                            ${locationSpan}
-                            ${followersSpan}
-                            ${publicReposSpan}
-                        </div>
                     </div>
                 </div>
             `;
             profileElement.classList.remove('hidden');
         }
 
-        // Function to render the repository cards based on a provided array
         function renderRepoCards(repos) {
-            repoContainer.innerHTML = ''; // Clear existing cards
-            
-            if (repos.length === 0) {
-                // Status message is handled by the calling function (fetch or search)
-                return; 
-            }
-
+            repoContainer.innerHTML = ''; 
             repos.forEach(repo => {
                 repoContainer.appendChild(createRepoCard(repo));
             });
         }
 
-        // Main function to fetch data and update the UI
         async function fetchAndDisplayRepos(username) {
             username = username.toLowerCase();
-            repoContainer.innerHTML = '';
-            document.getElementById('userProfile').classList.add('hidden'); // Hide profile during load
             displayStatus(`Loading profile and repositories for ${username}...`, 'text-blue-500');
 
-            // --- CORRECTED: Use /users/ endpoint for personal accounts ---
             const userApiUrl = `https://api.github.com/users/${username}`;
-            // Use /users/ endpoint for repositories as well, request 100 results per page (max limit)
             const reposApiUrl = `https://api.github.com/users/${username}/repos?type=public&sort=pushed&per_page=100`; 
-            // -----------------------------------------------------------
             
             try {
-                // Fetch both user data and repository data concurrently
                 const [userResponse, reposResponse] = await Promise.all([
                     fetch(userApiUrl),
                     fetch(reposApiUrl)
                 ]);
 
-                // Check for user profile errors first (404 is the most common error for non-existent users)
                 if (userResponse.status === 404) {
                     displayStatus(`Error: GitHub user "${username}" not found.`, 'text-red-500');
                     return;
-                }
-                if (!userResponse.ok || !reposResponse.ok) {
-                     throw new Error('One or more API requests failed. Check if the user exists and the repository endpoint is valid.');
                 }
 
                 const userData = await userResponse.json();
                 let repoData = await reposResponse.json();
 
-                // --- CRITICAL FILTER STEP: Remove the catalog repo ---
-                const filteredRepoData = repoData
-                    .filter(repo => repo.name !== EXCLUDED_REPO_NAME);
+                currentRepos = repoData.filter(repo => repo.name !== EXCLUDED_REPO_NAME);
                 
-                // Store the filtered list of repos in the global state
-                currentRepos = filteredRepoData; 
-                
-                // 1. Display Profile
                 displayProfile(userData);
 
-                // 2. Display Repositories
                 if (currentRepos.length === 0) {
-                    displayStatus(`User "${username}" has no public repositories to display.`, 'text-yellow-600');
+                    displayStatus(`User "${username}" has no public repositories.`, 'text-yellow-600');
                 } else {
-                    displayStatus(`Displaying ${currentRepos.length} public repositories for ${HARDCODED_USERNAME}:`);
-                    renderRepoCards(currentRepos); // Render all initial repos
+                    displayStatus(`Displaying ${currentRepos.length} public repositories:`);
+                    renderRepoCards(currentRepos);
                 }
 
             } catch (error) {
-                console.error('Fetch error:', error);
-                // Fallback display if an error occurred during fetching
-                displayStatus(`An error occurred while fetching data. Check console for details.`, 'text-red-500');
-                document.getElementById('userProfile').classList.add('hidden');
-                currentRepos = []; // Clear current repos on error
+                displayStatus(`An error occurred while fetching data.`, 'text-red-500');
             }
         }
 
-
-        // NEW HELPER: Constructs the URL to the locally generated thumbnail.
-        function getThumbnailUrl(repoName) {
-            // Path structure is relative to index.html: previews/{repoName}.png
-            return `./previews/${repoName}.png`; 
-        }
-
-        // Function to create a single repository card element
         function createRepoCard(repo) {
             const card = document.createElement('div');
-            // Added overflow-hidden to clip the image corners
-            card.className = 'bg-card-bg rounded-xl shadow-md hover:shadow-lg transition duration-300 border border-gray-100 flex flex-col justify-between overflow-hidden';
+            const isSelected = selectedRepoIds.has(repo.id.toString());
             
-            // Language badge styling helper
-            const getLanguageBadge = (language) => {
-                if (!language) return '';
-                // Simple color logic based on the first letter of the language for demonstration
-                let colorClass;
-                switch (language[0]?.toLowerCase()) {
-                    case 'j': // JavaScript, Java, Jupyter...
-                        colorClass = 'bg-yellow-100 text-yellow-800';
-                        break;
-                    case 'p': // Python, PHP
-                        colorClass = 'bg-blue-100 text-blue-800';
-                        break;
-                    case 'h': // HTML
-                        colorClass = 'bg-red-100 text-red-800';
-                        break;
-                    case 'r': // React, Ruby
-                        colorClass = 'bg-cyan-100 text-cyan-800';
-                        break;
-                    case 'c': // C, C++, C#
-                        colorClass = 'bg-green-100 text-green-800';
-                        break;
-                    default:
-                        colorClass = 'bg-gray-100 text-gray-800';
-                }
-                return `<span class="inline-block px-2 py-0.5 text-xs font-medium rounded-full ${colorClass}">${language}</span>`;
-            };
-
-            // Icon for Stars (using inline SVG for no external dependencies)
-            const starIcon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4 text-yellow-500 inline-block align-middle mr-1"><path fill-rule="evenodd" d="M10.868 2.884c.321-.772 1.488-.772 1.809 0l1.087 2.618a1.15 1.15 0 0 0 1.636.568l2.81-1.405c.78-.39 1.62.198 1.422 1.054l-1.055 4.183a1.15 1.15 0 0 0 .342 1.058l3.295 3.018c.677.625.218 1.761-.743 1.968l-4.707.989a1.15 1.15 0 0 0-.916.636l-1.85 3.518c-.352.668-1.332.668-1.684 0l-1.85-3.518a1.15 1.15 0 0 0-.916-.636l-4.707-.989c-.961-.207-1.42-1.343-.743-1.968l2.81 1.405a1.15 1.15 0 0 0 1.636-.568l1.087-2.618Z" clip-rule="evenodd" /></svg>`;
-
-            // Logic to construct the GitHub Pages URL
-            const username = repo.owner.login.toLowerCase();
-            const targetUrl = `https://${username}.github.io/${repo.name}/`;
-
-            // --- THUMBNAIL IMAGE LOGIC ---
-            // 1. Point to the dynamically generated preview.png in the previews directory.
-            const thumbnailUrl = getThumbnailUrl(repo.name);
-            const placeholderUrl = `https://placehold.co/600x300/f6f8fa/24292e?text=Preview+for+${repo.name}`;
+            card.className = `relative bg-card-bg rounded-xl shadow-md hover:shadow-lg transition duration-300 border ${isSelected ? 'border-github-blue ring-1 ring-github-blue' : 'border-gray-100'} flex flex-col justify-between overflow-hidden`;
             
-            const imageHtml = `
+            const targetUrl = `https://${repo.owner.login.toLowerCase()}.github.io/${repo.name}/`;
+            const thumbnailUrl = `./previews/${repo.name}.png`;
+            const placeholderUrl = `https://placehold.co/600x300/f6f8fa/24292e?text=${repo.name}`;
+
+            card.innerHTML = `
+                <div class="absolute top-3 right-3 z-10">
+                    <input type="checkbox" data-id="${repo.id}" class="repo-checkbox w-6 h-6 rounded border-gray-300 text-github-blue focus:ring-github-blue cursor-pointer" ${isSelected ? 'checked' : ''}>
+                </div>
                 <a href="${targetUrl}" target="_blank" class="block aspect-video bg-gray-100">
-                    <img src="${thumbnailUrl}" 
-                        alt="Preview of ${repo.name}" 
-                        class="w-full h-full object-cover" 
-                        onerror="this.onerror=null; this.src='${placeholderUrl}';">
+                    <img src="${thumbnailUrl}" alt="${repo.name}" class="w-full h-full object-cover" onerror="this.onerror=null; this.src='${placeholderUrl}';">
                 </a>
-            `;
-
-            // --- Card Content (wrapped in p-5) ---
-            const contentHtml = `
                 <div class="p-5 flex flex-col justify-between flex-grow">
-                    <!-- This div ensures title and description are grouped, and the stats are pushed to the bottom -->
                     <div>
-                        <a href="${targetUrl}" target="_blank" class="block">
-                            <h2 class="text-xl font-semibold text-github-blue hover:text-blue-700 mb-2 truncate" title="${repo.name}">
-                                ${repo.name}
-                            </h2>
-                        </a>
-                        <p class="text-sm text-gray-700 mb-4 min-h-[40px]">
-                            ${repo.description ? repo.description : 'No description provided.'}
-                        </p>
+                        <h2 class="text-xl font-semibold text-github-blue hover:text-blue-700 mb-2 truncate">${repo.name}</h2>
+                        <p class="text-sm text-gray-700 mb-4 min-h-[40px]">${repo.description || 'No description.'}</p>
                     </div>
-                    
-                    <!-- Stats section -->
-                    <div class="flex items-center justify-between text-sm text-gray-500 mt-2">
-                        <div class="flex items-center space-x-3 flex-wrap">
-                            ${getLanguageBadge(repo.language)}
-                            ${repo.stargazers_count > 0 ? 
-                                `<span class="flex items-center">
-                                    ${starIcon}
-                                    ${repo.stargazers_count}
-                                </span>` 
-                                : ''
-                            }
-                        </div>
-                        <span class="flex-shrink-0 ml-2" title="Last updated: ${new Date(repo.pushed_at).toLocaleDateString()}">
-                            Updated ${timeSince(new Date(repo.pushed_at))} ago
-                        </span>
+                    <div class="flex items-center justify-between text-xs text-gray-500">
+                        <span class="bg-gray-100 px-2 py-1 rounded">${repo.language || 'Plain Text'}</span>
+                        <span>Updated ${timeSince(new Date(repo.pushed_at))} ago</span>
                     </div>
                 </div>
             `;
 
-            card.innerHTML = imageHtml + contentHtml;
+            // Handle checkbox interaction
+            const cb = card.querySelector('.repo-checkbox');
+            cb.addEventListener('change', (e) => {
+                toggleRepoSelection(repo.id.toString(), e.target.checked);
+                if (e.target.checked) {
+                    card.classList.add('border-github-blue', 'ring-1', 'ring-github-blue');
+                } else {
+                    card.classList.remove('border-github-blue', 'ring-1', 'ring-github-blue');
+                }
+            });
+
             return card;
         }
 
-        // Utility function to calculate time since last push (for better UX)
         function timeSince(date) {
             const seconds = Math.floor((new Date() - date) / 1000);
             let interval = seconds / 31536000;
-
-            if (interval > 1) {
-                return Math.floor(interval) + (Math.floor(interval) === 1 ? " year" : " years");
-            }
+            if (interval > 1) return Math.floor(interval) + "y";
             interval = seconds / 2592000;
-            if (interval > 1) {
-                return Math.floor(interval) + (Math.floor(interval) === 1 ? " month" : " months");
-            }
+            if (interval > 1) return Math.floor(interval) + "mo";
             interval = seconds / 86400;
-            if (interval > 1) {
-                return Math.floor(interval) + (Math.floor(interval) === 1 ? " day" : " days");
-            }
-            interval = seconds / 3600;
-            if (interval > 1) {
-                return Math.floor(interval) + (Math.floor(interval) === 1 ? " hour" : " hours");
-            }
-            // Handle minutes and seconds for very recent pushes
-            interval = seconds / 60;
-            if (interval > 1) {
-                 return Math.floor(interval) + (Math.floor(interval) === 1 ? " minute" : " minutes");
-            }
-            return "just now";
+            if (interval > 1) return Math.floor(interval) + "d";
+            return "recent";
         }
     </script>
 </body>
