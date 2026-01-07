@@ -29,7 +29,7 @@ jobs:
           node-version: '20'
           cache: 'npm' # Speeds up subsequent runs
           
-- name: Install Chromium System Dependencies
+      - name: Install Chromium System Dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y libnss3 libnspr4 libatk1.0-0 libatk-bridge2.0-0 libxkbcommon-x11-0 libgbm-dev libasound2t64
