@@ -6,7 +6,7 @@
     <title>Dynamic GitHub Repository Catalog</title>
     <!-- Load Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Configure Tailwind to use Inter font and simple colors  -->
+    <!-- Configure Tailwind with the new brand color scheme -->
     <script>
         tailwind.config = {
             theme: {
@@ -15,9 +15,11 @@
                         sans: ['Inter', 'sans-serif'],
                     },
                     colors: {
-                        'github-dark': '#24292e',
-                        'github-blue': '#0366d6',
-                        'bg-light': '#f6f8fa',
+                        'brand-midnight': '#1f2a52',
+                        'brand-teal': '#00bec7',
+                        'brand-aqua': '#d2f0f0',
+                        'brand-slate': '#abb5bf',
+                        'bg-light': '#f8fafc',
                         'card-bg': '#ffffff',
                     }
                 }
@@ -25,26 +27,45 @@
         }
     </script>
     <style>
-        /* Custom scrollbar styling for a cleaner look */
+        /* Custom scrollbar styling */
         .repo-container::-webkit-scrollbar {
             width: 8px;
         }
         .repo-container::-webkit-scrollbar-thumb {
-            background-color: #d1d5db; /* gray-300 */
+            background-color: #abb5bf; /* brand-slate */
             border-radius: 4px;
         }
         .repo-container::-webkit-scrollbar-track {
-            background: #f3f4f6; /* gray-100 */
+            background: #d2f0f0; /* brand-aqua */
         }
-        /* Checkbox styling */
-        .repo-checkbox:checked {
-            background-color: #0366d6;
-            border-color: #0366d6;
+        /* Custom checkbox and selection styling */
+        .repo-checkbox {
+            accent-color: #00bec7;
         }
         .repo-card-selected {
-            border-color: #0366d6 !important;
-            ring: 2px;
-            ring-color: #0366d6;
+            border-color: #00bec7 !important;
+            box-shadow: 0 0 0 2px #00bec7;
+        }
+        /* Tooltip style for selection boxes */
+        .selection-tooltip {
+            visibility: hidden;
+            background-color: #1f2a52;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 5px 10px;
+            position: absolute;
+            z-index: 20;
+            bottom: 125%;
+            right: 0;
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-size: 10px;
+            white-space: nowrap;
+        }
+        .group:hover .selection-tooltip {
+            visibility: visible;
+            opacity: 1;
         }
     </style>
 </head>
@@ -52,69 +73,91 @@
 
     <div class="max-w-4xl mx-auto">
         <!-- Header and Display Info -->
-        <header class="text-center mb-8 p-6 bg-white shadow-lg rounded-xl border border-gray-100">
-            <h1 class="text-3xl font-bold text-github-dark mb-2">Public Repositories Catalog</h1>
-            <p class="text-gray-600">
-                Displaying public repositories for the user:
-                <span id="hardcodedUsernameDisplay" class="font-semibold text-github-blue"></span>
+        <header class="text-center mb-8 p-8 bg-white shadow-sm rounded-2xl border border-brand-aqua">
+            <h1 class="text-3xl font-extrabold text-brand-midnight mb-2">Public Repositories Catalog</h1>
+            <p class="text-brand-slate">
+                Displaying public repositories for:
+                <span id="hardcodedUsernameDisplay" class="font-bold text-brand-teal"></span>
             </p>
         </header>
 
+        <!-- Instructions Section -->
+        <section class="mb-8 bg-brand-midnight text-white p-6 rounded-2xl shadow-md">
+            <h2 class="text-lg font-bold mb-3 flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5 mr-2 text-brand-teal">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                </svg>
+                How to Download Code
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                <div class="bg-white/10 p-4 rounded-xl border border-white/10">
+                    <span class="block text-brand-teal font-bold mb-1">Step 1: Select</span>
+                    Click the selection square in the top-right corner of any repository card you want to include.
+                </div>
+                <div class="bg-white/10 p-4 rounded-xl border border-white/10">
+                    <span class="block text-brand-teal font-bold mb-1">Step 2: Review</span>
+                    The blue bar at the bottom will track your selection count. You can clear it at any time.
+                </div>
+                <div class="bg-white/10 p-4 rounded-xl border border-white/10">
+                    <span class="block text-brand-teal font-bold mb-1">Step 3: Download</span>
+                    Click "Download Bundle" to fetch the <code class="bg-brand-midnight px-1 text-brand-teal">index.html</code> and <code class="bg-brand-midnight px-1 text-brand-teal">README.md</code> for each project.
+                </div>
+            </div>
+        </section>
+
         <!-- User Profile Display Section -->
-        <div id="userProfile" class="bg-white p-6 rounded-xl shadow-lg border border-gray-100 mb-8 hidden">
-            <!-- Profile content will be injected here -->
+        <div id="userProfile" class="bg-white p-6 rounded-2xl shadow-sm border border-brand-aqua mb-8 hidden">
+            <!-- Profile content injected here -->
         </div>
         
         <!-- Repository Search Filter & Select All -->
         <div class="mb-6 flex flex-col sm:flex-row gap-4 items-center">
              <div class="relative flex-grow w-full">
-                <input type="text" id="searchRepoInput" placeholder="Filter repositories by name or description..."
-                       class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-github-blue shadow-sm transition duration-150 ease-in-out text-gray-700">
+                <input type="text" id="searchRepoInput" placeholder="Filter repositories..."
+                       class="w-full p-3 border border-brand-slate rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-teal focus:border-transparent bg-white shadow-sm transition-all text-brand-midnight">
              </div>
-             <button id="selectAllBtn" class="whitespace-nowrap px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition shadow-sm">
+             <button id="selectAllBtn" class="whitespace-nowrap px-6 py-3 bg-white border border-brand-slate rounded-xl text-sm font-semibold text-brand-midnight hover:bg-brand-aqua hover:border-brand-teal transition-all shadow-sm">
                 Select All
              </button>
         </div>
 
         <!-- Loading Indicator & Error Message -->
-        <div id="statusMessage" class="text-center text-lg text-gray-500 mb-4 hidden"></div>
+        <div id="statusMessage" class="text-center text-lg text-brand-slate mb-4 hidden font-medium"></div>
         
         <!-- Repository Container -->
         <div id="repoContainer" class="repo-container grid grid-cols-1 md:grid-cols-2 gap-6">
-            <!-- Repository cards will be injected here -->
+            <!-- Repository cards injected here -->
         </div>
 
         <!-- Footer -->
-        <footer class="mt-10 text-center text-sm text-gray-500">
-            Data fetched dynamically from the GitHub REST API and local previews.
+        <footer class="mt-12 text-center text-xs text-brand-slate uppercase tracking-widest font-semibold">
+            &copy; GitHub REST API Connection • Local Preview Service
         </footer>
     </div>
 
     <!-- Pinned Download Action Bar -->
-    <div id="downloadBar" class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] p-4 transform translate-y-full transition-transform duration-300 ease-in-out z-50">
+    <div id="downloadBar" class="fixed bottom-0 left-0 right-0 bg-brand-midnight text-white shadow-2xl p-5 transform translate-y-full transition-transform duration-500 ease-in-out z-50">
         <div class="max-w-4xl mx-auto flex items-center justify-between">
-            <div>
-                <span id="selectedCount" class="font-bold text-github-blue">0</span>
-                <span class="text-gray-600 ml-1">repositories selected</span>
+            <div class="flex items-center">
+                <div class="bg-brand-teal text-brand-midnight px-3 py-1 rounded-full font-bold mr-3" id="selectedCount">0</div>
+                <span class="text-brand-aqua font-medium">repositories selected for bundle</span>
             </div>
-            <div class="flex space-x-3">
-                <button id="clearSelectionBtn" class="px-4 py-2 text-sm text-gray-500 hover:text-gray-800">Clear</button>
-                <button id="downloadBundleBtn" class="flex items-center px-6 py-2 bg-github-blue text-white rounded-lg font-semibold hover:bg-blue-700 transition shadow-md">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5 mr-2">
+            <div class="flex space-x-4 items-center">
+                <button id="clearSelectionBtn" class="text-sm font-bold text-brand-slate hover:text-white transition-colors">Clear All</button>
+                <button id="downloadBundleBtn" class="flex items-center px-8 py-3 bg-brand-teal text-brand-midnight rounded-xl font-bold hover:brightness-110 active:scale-95 transition-all shadow-lg">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-5 h-5 mr-2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M7.5 12l4.5 4.5m0 0 4.5-4.5M12 3v13.5" />
                     </svg>
-                    Download
+                    Download Bundle
                 </button>
             </div>
         </div>
     </div>
 
     <script>
-        // HARDCODED USERNAME
         const HARDCODED_USERNAME = 'accounts-eles';
         const EXCLUDED_REPO_NAME = 'Catalog_of_Repos';
 
-        // Global state
         let currentRepos = []; 
         let selectedRepoIds = new Set();
 
@@ -142,13 +185,18 @@
                 visibleCheckboxes.forEach(cb => {
                     cb.checked = !allChecked;
                     toggleRepoSelection(cb.dataset.id, !allChecked);
+                    const card = cb.closest('.repo-card');
+                    if (!allChecked) card.classList.add('repo-card-selected');
+                    else card.classList.remove('repo-card-selected');
                 });
-                updateDownloadBar();
             });
 
             document.getElementById('clearSelectionBtn').addEventListener('click', () => {
                 selectedRepoIds.clear();
-                document.querySelectorAll('.repo-checkbox').forEach(cb => cb.checked = false);
+                document.querySelectorAll('.repo-checkbox').forEach(cb => {
+                    cb.checked = false;
+                    cb.closest('.repo-card').classList.remove('repo-card-selected');
+                });
                 updateDownloadBar();
             });
 
@@ -156,35 +204,28 @@
         }
 
         function toggleRepoSelection(repoId, isSelected) {
-            if (isSelected) {
-                selectedRepoIds.add(repoId);
-            } else {
-                selectedRepoIds.delete(repoId);
-            }
+            if (isSelected) selectedRepoIds.add(repoId);
+            else selectedRepoIds.delete(repoId);
             updateDownloadBar();
         }
 
         function updateDownloadBar() {
             const count = selectedRepoIds.size;
             selectedCountDisp.textContent = count;
-            if (count > 0) {
-                downloadBar.classList.remove('translate-y-full');
-            } else {
-                downloadBar.classList.add('translate-y-full');
-            }
+            if (count > 0) downloadBar.classList.remove('translate-y-full');
+            else downloadBar.classList.add('translate-y-full');
         }
 
         async function handleBulkDownload() {
             const btn = document.getElementById('downloadBundleBtn');
             const originalContent = btn.innerHTML;
             btn.disabled = true;
-            btn.innerHTML = `<span class="animate-spin mr-2">⏳</span> Preparing files...`;
+            btn.innerHTML = `<span class="animate-spin mr-2">⏳</span> Processing...`;
 
             const selectedRepos = currentRepos.filter(r => selectedRepoIds.has(r.id.toString()));
             
             for (const repo of selectedRepos) {
                 const branch = repo.default_branch || 'main';
-                // Note: We use sequential downloads to avoid browser spam-blocking popups
                 await downloadRawFile(repo.owner.login, repo.name, branch, 'index.html');
                 await downloadRawFile(repo.owner.login, repo.name, branch, 'README.md');
             }
@@ -197,8 +238,7 @@
             const url = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${filename}`;
             try {
                 const resp = await fetch(url);
-                if (!resp.ok) return; // Skip if file doesn't exist
-
+                if (!resp.ok) return;
                 const blob = await resp.blob();
                 const blobUrl = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
@@ -208,53 +248,45 @@
                 a.click();
                 document.body.removeChild(a);
                 window.URL.revokeObjectURL(blobUrl);
-            } catch (e) {
-                console.error(`Failed to download ${filename} for ${repo}`);
-            }
+            } catch (e) { console.error(`Failed: ${repo}/${filename}`); }
         }
 
         function handleSearch() {
             const query = searchRepoInput.value.toLowerCase().trim();
-            let reposToFilter = [...currentRepos]; 
-
-            const filteredRepos = query ? reposToFilter.filter(repo => {
-                const name = repo.name.toLowerCase();
-                const description = (repo.description || '').toLowerCase();
-                return name.includes(query) || description.includes(query);
-            }) : reposToFilter;
+            const filteredRepos = query ? currentRepos.filter(repo => {
+                return repo.name.toLowerCase().includes(query) || 
+                       (repo.description || '').toLowerCase().includes(query);
+            }) : currentRepos;
 
             renderRepoCards(filteredRepos);
             
             if (filteredRepos.length === 0 && query) {
-                displayStatus(`No repositories found matching "${query}".`, 'text-yellow-600');
+                displayStatus(`No results for "${query}".`, 'text-brand-slate');
             } else {
-                displayStatus(`Displaying ${filteredRepos.length} matching repositories:`);
+                displayStatus(`${filteredRepos.length} results matching filter:`, 'text-brand-teal');
             }
         }
         
-        function displayStatus(message, className = 'text-gray-500') {
+        function displayStatus(message, className = 'text-brand-slate') {
             statusMessage.textContent = message;
-            statusMessage.className = `text-center text-lg mb-4 ${className}`;
+            statusMessage.className = `text-center text-sm font-bold uppercase tracking-wide mb-4 ${className}`;
             statusMessage.classList.remove('hidden');
         }
 
         function displayProfile(user) {
             const profileElement = document.getElementById('userProfile');
-            if (user.message === 'Not Found' || !user.login) {
-                 profileElement.classList.add('hidden');
-                 return;
-            }
+            if (user.message === 'Not Found' || !user.login) return;
 
             const name = user.name || user.login;
-            const bio = user.bio || 'No bio provided.';
-            
             profileElement.innerHTML = `
-                <div class="flex items-start">
-                    <img src="${user.avatar_url}" alt="${name} Avatar" class="w-20 h-20 rounded-full mr-5 shadow-inner">
+                <div class="flex items-center">
+                    <img src="${user.avatar_url}" alt="Avatar" class="w-16 h-16 rounded-2xl mr-5 border-2 border-brand-teal shadow-sm">
                     <div class="flex-grow">
-                        <h2 class="text-2xl font-bold text-github-dark">${name}</h2>
-                        <p class="text-lg text-gray-500 mb-2">@<a href="${user.html_url}" target="_blank" class="text-github-blue hover:underline">${user.login}</a></p>
-                        <p class="text-gray-700 mb-3">${bio}</p>
+                        <h2 class="text-xl font-bold text-brand-midnight">${name}</h2>
+                        <p class="text-brand-slate text-sm font-medium mb-1">
+                            @<a href="${user.html_url}" target="_blank" class="text-brand-teal hover:underline">${user.login}</a>
+                        </p>
+                        <p class="text-xs text-brand-midnight opacity-80 max-w-md">${user.bio || ''}</p>
                     </div>
                 </div>
             `;
@@ -263,86 +295,75 @@
 
         function renderRepoCards(repos) {
             repoContainer.innerHTML = ''; 
-            repos.forEach(repo => {
-                repoContainer.appendChild(createRepoCard(repo));
-            });
+            repos.forEach(repo => repoContainer.appendChild(createRepoCard(repo)));
         }
 
         async function fetchAndDisplayRepos(username) {
-            username = username.toLowerCase();
-            displayStatus(`Loading profile and repositories for ${username}...`, 'text-blue-500');
-
-            const userApiUrl = `https://api.github.com/users/${username}`;
-            const reposApiUrl = `https://api.github.com/users/${username}/repos?type=public&sort=pushed&per_page=100`; 
-            
+            displayStatus(`Fetching secure repository data...`, 'text-brand-teal');
             try {
-                const [userResponse, reposResponse] = await Promise.all([
-                    fetch(userApiUrl),
-                    fetch(reposApiUrl)
+                const [uResp, rResp] = await Promise.all([
+                    fetch(`https://api.github.com/users/${username}`),
+                    fetch(`https://api.github.com/users/${username}/repos?type=public&sort=pushed&per_page=100`)
                 ]);
 
-                if (userResponse.status === 404) {
-                    displayStatus(`Error: GitHub user "${username}" not found.`, 'text-red-500');
+                if (uResp.status === 404) {
+                    displayStatus(`Error: User not found.`, 'text-red-500');
                     return;
                 }
 
-                const userData = await userResponse.json();
-                let repoData = await reposResponse.json();
+                const userData = await uResp.json();
+                const repoData = await rResp.json();
 
                 currentRepos = repoData.filter(repo => repo.name !== EXCLUDED_REPO_NAME);
-                
                 displayProfile(userData);
 
                 if (currentRepos.length === 0) {
-                    displayStatus(`User "${username}" has no public repositories.`, 'text-yellow-600');
+                    displayStatus(`No public repositories found.`, 'text-brand-slate');
                 } else {
-                    displayStatus(`Displaying ${currentRepos.length} public repositories:`);
+                    displayStatus(`${currentRepos.length} Repositories Available:`);
                     renderRepoCards(currentRepos);
                 }
-
             } catch (error) {
-                displayStatus(`An error occurred while fetching data.`, 'text-red-500');
+                displayStatus(`Connection error.`, 'text-red-500');
             }
         }
 
         function createRepoCard(repo) {
             const card = document.createElement('div');
-            const isSelected = selectedRepoIds.has(repo.id.toString());
+            const repoIdStr = repo.id.toString();
+            const isSelected = selectedRepoIds.has(repoIdStr);
             
-            card.className = `relative bg-card-bg rounded-xl shadow-md hover:shadow-lg transition duration-300 border ${isSelected ? 'border-github-blue ring-1 ring-github-blue' : 'border-gray-100'} flex flex-col justify-between overflow-hidden`;
+            card.className = `repo-card relative bg-white rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 border-2 ${isSelected ? 'repo-card-selected' : 'border-brand-aqua'} flex flex-col overflow-hidden group`;
             
             const targetUrl = `https://${repo.owner.login.toLowerCase()}.github.io/${repo.name}/`;
+            const placeholderUrl = `https://placehold.co/600x300/1f2a52/ffffff?text=${repo.name}`;
             const thumbnailUrl = `./previews/${repo.name}.png`;
-            const placeholderUrl = `https://placehold.co/600x300/f6f8fa/24292e?text=${repo.name}`;
 
             card.innerHTML = `
-                <div class="absolute top-3 right-3 z-10">
-                    <input type="checkbox" data-id="${repo.id}" class="repo-checkbox w-6 h-6 rounded border-gray-300 text-github-blue focus:ring-github-blue cursor-pointer" ${isSelected ? 'checked' : ''}>
+                <div class="absolute top-4 right-4 z-10 flex flex-col items-end">
+                    <span class="selection-tooltip font-bold uppercase tracking-widest">Select to bundle</span>
+                    <input type="checkbox" data-id="${repo.id}" class="repo-checkbox w-6 h-6 rounded-lg cursor-pointer shadow-sm" ${isSelected ? 'checked' : ''}>
                 </div>
-                <a href="${targetUrl}" target="_blank" class="block aspect-video bg-gray-100">
-                    <img src="${thumbnailUrl}" alt="${repo.name}" class="w-full h-full object-cover" onerror="this.onerror=null; this.src='${placeholderUrl}';">
+                <a href="${targetUrl}" target="_blank" class="block aspect-video bg-brand-aqua overflow-hidden">
+                    <img src="${thumbnailUrl}" alt="${repo.name}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" onerror="this.onerror=null; this.src='${placeholderUrl}';">
                 </a>
-                <div class="p-5 flex flex-col justify-between flex-grow">
-                    <div>
-                        <h2 class="text-xl font-semibold text-github-blue hover:text-blue-700 mb-2 truncate">${repo.name}</h2>
-                        <p class="text-sm text-gray-700 mb-4 min-h-[40px]">${repo.description || 'No description.'}</p>
+                <div class="p-6 flex flex-col flex-grow">
+                    <div class="flex-grow">
+                        <h2 class="text-lg font-bold text-brand-midnight group-hover:text-brand-teal transition-colors mb-2 truncate">${repo.name}</h2>
+                        <p class="text-xs text-brand-slate font-medium leading-relaxed mb-4 line-clamp-2 h-8">${repo.description || 'No project description available.'}</p>
                     </div>
-                    <div class="flex items-center justify-between text-xs text-gray-500">
-                        <span class="bg-gray-100 px-2 py-1 rounded">${repo.language || 'Plain Text'}</span>
-                        <span>Updated ${timeSince(new Date(repo.pushed_at))} ago</span>
+                    <div class="flex items-center justify-between mt-4 pt-4 border-t border-brand-aqua">
+                        <span class="text-[10px] font-bold uppercase tracking-wider bg-brand-aqua text-brand-midnight px-2 py-1 rounded-md">${repo.language || 'Code'}</span>
+                        <span class="text-[10px] font-bold text-brand-slate uppercase">Updated ${timeSince(new Date(repo.pushed_at))}</span>
                     </div>
                 </div>
             `;
 
-            // Handle checkbox interaction
             const cb = card.querySelector('.repo-checkbox');
             cb.addEventListener('change', (e) => {
-                toggleRepoSelection(repo.id.toString(), e.target.checked);
-                if (e.target.checked) {
-                    card.classList.add('border-github-blue', 'ring-1', 'ring-github-blue');
-                } else {
-                    card.classList.remove('border-github-blue', 'ring-1', 'ring-github-blue');
-                }
+                toggleRepoSelection(repoIdStr, e.target.checked);
+                if (e.target.checked) card.classList.add('repo-card-selected');
+                else card.classList.remove('repo-card-selected');
             });
 
             return card;
@@ -356,7 +377,7 @@
             if (interval > 1) return Math.floor(interval) + "mo";
             interval = seconds / 86400;
             if (interval > 1) return Math.floor(interval) + "d";
-            return "recent";
+            return "today";
         }
     </script>
 </body>
