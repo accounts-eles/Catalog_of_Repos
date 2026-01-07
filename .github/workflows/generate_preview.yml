@@ -7,63 +7,61 @@ on:
       - main
   workflow_dispatch: # Allows manual triggering from the GitHub UI
 
-# The 'jobs' section is required to define the work to be done
+# The 'jobs' section defines the work to be done
 jobs:
   generate_preview_card:
-    # CRITICAL: Only run this workflow if the push was NOT made by the 'github-actions[bot]' user.
-    # This prevents an infinite loop when the action commits the new files.
+    # prevents an infinite loop when the action commits the new files.
     if: github.actor != 'github-actions[bot]'
 
-    # Use the latest Ubuntu runner
     runs-on: ubuntu-latest
     
-    # CRITICAL FIX: Grant permissions for this specific job
     permissions:
-      # Required to commit the generated files
+      # Required to commit the generated files back to the repo
       contents: write
-      # We rely on the ORG_PAT_TOKEN for reading organization data.
 
     steps:
       - name: Checkout repository code
-        # Uses an official GitHub action to download your repository content
         uses: actions/checkout@v4
 
       - name: Setup Node.js
-        # Sets up the Node.js environment needed to run your JavaScript script
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+          cache: 'npm' # Speeds up subsequent runs
           
-      # --- CRITICAL: Install System Dependencies for Puppeteer/Chromium ---
-      - name: Install Chromium Dependencies
+      - name: Install Chromium System Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libnss3 libnspr4 libatk1.0-0 libatk-bridge2.0-0 libxkbcommon-x11-0 libgbm-dev
+          sudo apt-get install -y libnss3 libnspr4 libatk1.0-0 libatk-bridge2.0-0 libxkbcommon-x11-0 libgbm-dev libasound2
           
-      # --- Install dependencies (puppeteer, simple-git) ---
-      - name: Install Node Dependencies (Use npm ci for faster, reproducible CI builds)
+      - name: Install Node Dependencies
         run: npm ci
 
-      # --- STEP A: AUTOMATIC IMAGE GENERATION SCRIPT EXECUTION ---
+      # --- CRITICAL FIX: Explicitly install the Chrome binary for Puppeteer ---
+      - name: Install Puppeteer Browser
+        run: npx puppeteer browsers install chrome
+
+      # --- STEP A: Run the image generation script ---
       - name: Generate Preview Image via Node.js Script
         run: node generate_preview_script.js
         env:
-          # --- FIX: Pass the new, powerful ORG_PAT_TOKEN to the script ---
           ORG_PAT_TOKEN: ${{ secrets.ORG_PAT_TOKEN }} 
 
-      # --- STEP B: Commit and Push the New File ---
+      # --- STEP B: Commit and Push the New Files ---
       - name: Check for changes and commit
         id: commit
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: 'docs: Auto-generated social media preview cards'
-          # Commit all files inside the new 'previews/' directory
-          file_pattern: previews/*
+          # This ensures it picks up everything in the previews folder
+          file_pattern: 'previews/*.png'
+          # Optional: ensures the action uses the correct git identity
+          commit_author: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>
 
       - name: Report Status
         if: steps.commit.outputs.changes_detected == 'true'
-        run: echo "Successfully generated and committed preview files in previews/ directory."
+        run: echo "Successfully generated and committed preview files to the previews/ directory."
 
       - name: Report No Changes
         if: steps.commit.outputs.changes_detected == 'false'
-        run: echo "No changes detected, skipping commit."
+        run: echo "No changes detected
