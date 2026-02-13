@@ -97,33 +97,36 @@
                 height: 80px !important;
             }
             #repoContainer {
-                display: block !important;
+                display: grid !important;
+                grid-template-columns: repeat(2, 1fr) !important;
+                gap: 1rem !important;
             }
             .repo-card {
                 break-inside: avoid;
-                margin-bottom: 1.5rem !important;
+                margin-bottom: 0 !important;
                 border: 1px solid #d2f0f0 !important;
                 box-shadow: none !important;
                 display: flex !important;
-                flex-direction: row !important;
+                flex-direction: column !important;
                 height: auto !important;
             }
             .repo-card a {
-                width: 30% !important;
-                height: 120px !important;
+                width: 100% !important;
+                height: 100px !important;
             }
             .repo-card .p-6 {
-                width: 70% !important;
-                padding: 1rem !important;
+                width: 100% !important;
+                padding: 0.75rem !important;
             }
             .repo-card h2 {
-                font-size: 1.25rem !important;
+                font-size: 1rem !important;
                 color: #1f2a52 !important;
             }
             .repo-card p {
-                -webkit-line-clamp: none !important;
+                -webkit-line-clamp: 2 !important;
                 height: auto !important;
-                font-size: 0.85rem !important;
+                font-size: 0.75rem !important;
+                margin-bottom: 0.5rem !important;
             }
         }
     </style>
@@ -159,7 +162,7 @@
                         <path stroke-linecap="round" stroke-linejoin="round" d="M6.72 13.89l-4.72-4.72a.75.75 0 010-1.06l4.72-4.72a.75.75 0 011.06 0l4.72 4.72a.75.75 0 010 1.06l-4.72 4.72a.75.75 0 01-1.06 0zM17.28 13.89l4.72-4.72a.75.75 0 000-1.06l-4.72-4.72a.75.75 0 00-1.06 0l-4.72 4.72a.75.75 0 000 1.06l4.72 4.72a.75.75 0 001.06 0z" />
                         <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v13.5m-3-3l3 3 3-3" />
                     </svg>
-                    <span id="printBtnText">Print PDF Catalog</span>
+                    <span id="printBtnText">Print Catalog</span>
                 </button>
             </div>
             
@@ -513,18 +516,20 @@
                 </a>
                 <div class="p-6 flex flex-col flex-grow">
                     <div class="flex-grow">
-                        <div class="flex flex-wrap mb-2">
-                            ${topicsHtml}
-                        </div>
                         <h2 class="text-lg font-bold text-brand-midnight group-hover:text-brand-teal transition-colors mb-2 truncate">${repo.name}</h2>
                         <p class="text-xs text-brand-slate font-medium leading-relaxed mb-4 line-clamp-2 h-8">${repo.description || 'No project description available.'}</p>
                     </div>
-                    <div class="flex items-center justify-between mt-4 pt-4 border-t border-brand-aqua">
-                        <div class="flex flex-col">
-                            <span class="text-[10px] font-bold uppercase tracking-wider bg-brand-aqua text-brand-midnight px-2 py-1 rounded-md inline-block w-fit mb-1">${repo.language || 'Code'}</span>
-                            <span class="text-[8px] text-brand-slate hidden print:inline">URL: ${targetUrl}</span>
+                    <div class="mt-4 pt-4 border-t border-brand-aqua">
+                        <div class="flex flex-wrap mb-2">
+                            ${topicsHtml}
                         </div>
-                        <span class="text-[10px] font-bold text-brand-slate uppercase">Updated ${timeSince(new Date(repo.pushed_at))}</span>
+                        <div class="flex items-center justify-between">
+                            <div class="flex flex-col">
+                                <span class="text-[10px] font-bold uppercase tracking-wider bg-brand-aqua text-brand-midnight px-2 py-1 rounded-md inline-block w-fit mb-1">${repo.language || 'Code'}</span>
+                                <span class="text-[8px] text-brand-slate hidden print:inline">URL: ${targetUrl}</span>
+                            </div>
+                            <span class="text-[10px] font-bold text-brand-slate uppercase">Updated ${timeSince(new Date(repo.pushed_at))}</span>
+                        </div>
                     </div>
                 </div>
             `;
