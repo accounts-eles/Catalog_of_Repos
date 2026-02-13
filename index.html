@@ -45,26 +45,72 @@
             border-color: #00bec7 !important;
             box-shadow: 0 0 0 2px #00bec7;
         }
+        /* Enhanced High-Contrast Tooltip Styling */
         .selection-tooltip {
             visibility: hidden;
-            background-color: #1f2a52;
-            color: #fff;
+            background-color: #ffffff;
+            color: #1f2a52;
             text-align: center;
-            border-radius: 6px;
-            padding: 5px 10px;
+            border-radius: 8px;
+            padding: 6px 14px;
             position: absolute;
-            z-index: 20;
-            bottom: 125%;
-            right: 0;
+            z-index: 30;
+            /* Center vertically relative to the 28px (w-7) checkbox */
+            top: 50%;
+            /* Position to the left of the checkbox, with space for the arrow */
+            right: 42px; 
+            transform: translate(10px, -50%); /* Start slightly shifted for animation */
             opacity: 0;
-            transition: opacity 0.3s;
-            font-size: 10px;
+            transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            font-size: 11px;
+            font-weight: 800;
             white-space: nowrap;
+            pointer-events: none;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            border: 2px solid #00bec7;
+            letter-spacing: 0.025em;
         }
+
+        /* Tooltip arrow - Perfectly centered to point at the middle of the checkbox */
+        .selection-tooltip::after {
+            content: "";
+            position: absolute;
+            top: 50%;
+            left: 100%;
+            transform: translateY(-50%);
+            border-width: 6px;
+            border-style: solid;
+            border-color: transparent transparent transparent #00bec7;
+        }
+
+        /* Inset white arrow to maintain the border effect */
+        .selection-tooltip::before {
+            content: "";
+            position: absolute;
+            top: 50%;
+            left: 100%;
+            transform: translateY(-50%);
+            margin-left: -2px;
+            border-width: 6px;
+            border-style: solid;
+            border-color: transparent transparent transparent #ffffff;
+            z-index: 1;
+        }
+        
         .group:hover .selection-tooltip {
             visibility: visible;
             opacity: 1;
+            transform: translate(0, -50%); /* Swings into centered position */
         }
+        
+        /* Ensure the card container doesn't clip the tooltip when it goes "outside" */
+        #repoContainer {
+            overflow: visible;
+        }
+        .repo-card {
+            overflow: visible !important;
+        }
+
         .hide-scrollbar::-webkit-scrollbar {
             display: none;
         }
@@ -99,7 +145,7 @@
             #repoContainer {
                 display: grid !important;
                 grid-template-columns: repeat(2, 1fr) !important;
-                gap: 1rem !important;
+                gap: 1.5rem !important;
             }
             .repo-card {
                 break-inside: avoid;
@@ -109,31 +155,32 @@
                 display: flex !important;
                 flex-direction: column !important;
                 height: auto !important;
+                min-height: 400px;
             }
             .repo-card a {
                 width: 100% !important;
-                height: 100px !important;
+                height: 120px !important;
             }
             .repo-card .p-6 {
                 width: 100% !important;
-                padding: 0.75rem !important;
+                padding: 1rem !important;
             }
             .repo-card h2 {
-                font-size: 1rem !important;
+                font-size: 1.1rem !important;
                 color: #1f2a52 !important;
             }
             .repo-card p {
-                -webkit-line-clamp: 2 !important;
+                -webkit-line-clamp: unset !important;
                 height: auto !important;
-                font-size: 0.75rem !important;
-                margin-bottom: 0.5rem !important;
+                font-size: 0.8rem !important;
+                margin-bottom: 0.75rem !important;
             }
         }
     </style>
 </head>
 <body class="bg-bg-light min-h-screen font-sans p-4 sm:p-8 pb-32">
 
-    <div id="printableArea" class="max-w-4xl mx-auto">
+    <div id="printableArea" class="max-w-6xl mx-auto">
         <!-- Header and Display Info -->
         <header class="text-center mb-8 p-8 bg-white shadow-sm rounded-2xl border border-brand-aqua relative print-hide">
             <h1 class="text-3xl font-extrabold text-brand-midnight mb-2">Public Repositories Catalog</h1>
@@ -144,11 +191,11 @@
         </header>
 
         <!-- User Profile Display Section -->
-        <div id="userProfile" class="bg-white p-6 rounded-2xl shadow-sm border border-brand-aqua mb-8 hidden">
+        <div id="userProfile" class="bg-white p-8 rounded-2xl shadow-sm border border-brand-aqua mb-8 hidden">
             <!-- Profile content injected here -->
         </div>
 
-        <!-- Tools & Instructions Section (Moved below profile) -->
+        <!-- Tools & Instructions Section -->
         <section id="setupInstructions" class="mb-8 bg-brand-midnight text-white p-6 rounded-2xl shadow-md print-hide">
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
                 <h3 class="text-xl font-bold flex items-center">
@@ -167,39 +214,36 @@
             </div>
             
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <!-- Step 1 -->
                 <div class="bg-white/10 border border-white/20 p-5 rounded-xl">
                     <h4 class="text-brand-teal font-bold text-sm mb-2 uppercase tracking-wide">Step 1: Select</h4>
                     <p class="text-xs leading-relaxed text-slate-200">
-                        Click the selection square in the top-right corner of any repository card you want to include.
+                        Click the checkbox in the top-right corner of any repository card you want to include.
                     </p>
                 </div>
-                <!-- Step 2 -->
                 <div class="bg-white/10 border border-white/20 p-5 rounded-xl">
                     <h4 class="text-brand-teal font-bold text-sm mb-2 uppercase tracking-wide">Step 2: Review</h4>
                     <p class="text-xs leading-relaxed text-slate-200">
-                        The blue bar at the bottom will track your selection count. You can clear it at any time.
+                        The action bar at the bottom will track your selection count.
                     </p>
                 </div>
-                <!-- Step 3 -->
                 <div class="bg-white/10 border border-white/20 p-5 rounded-xl">
                     <h4 class="text-brand-teal font-bold text-sm mb-2 uppercase tracking-wide">Step 3: Download</h4>
                     <p class="text-xs leading-relaxed text-slate-200">
-                        Click "Download Bundle" to fetch the <code class="bg-brand-midnight px-1 rounded text-brand-teal">index.html</code> and <code class="bg-brand-midnight px-1 rounded text-brand-teal">README.md</code> for each project.
+                        Click "Download Bundle" to fetch the source files for each selected project.
                     </p>
                 </div>
             </div>
         </section>
         
-        <!-- Repository Search & Topic Filters -->
+        <!-- Search & Filters -->
         <div class="mb-8 print-hide">
             <div class="flex flex-col sm:flex-row gap-4 items-center mb-4">
                  <div class="relative flex-grow w-full">
-                    <input type="text" id="searchRepoInput" placeholder="Filter repositories by name or description..."
-                           class="w-full p-3 border border-brand-slate rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-teal focus:border-transparent bg-white shadow-sm transition-all text-brand-midnight">
+                    <input type="text" id="searchRepoInput" placeholder="Search by name or description..."
+                           class="w-full p-4 border border-brand-slate rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-teal focus:border-transparent bg-white shadow-sm transition-all text-brand-midnight">
                  </div>
-                 <button id="selectAllBtn" class="whitespace-nowrap px-6 py-3 bg-white border border-brand-slate rounded-xl text-sm font-semibold text-brand-midnight hover:bg-brand-aqua hover:border-brand-teal transition-all shadow-sm">
-                    Select All
+                 <button id="selectAllBtn" class="whitespace-nowrap px-8 py-4 bg-white border border-brand-slate rounded-xl text-sm font-semibold text-brand-midnight hover:bg-brand-aqua hover:border-brand-teal transition-all shadow-sm">
+                    Select All Visible
                  </button>
             </div>
             
@@ -208,30 +252,28 @@
             </div>
         </div>
 
-        <!-- Loading Indicator & Error Message -->
-        <div id="statusMessage" class="text-center text-lg text-brand-slate mb-4 hidden font-medium"></div>
+        <div id="statusMessage" class="text-center text-lg text-brand-slate mb-6 hidden font-medium"></div>
         
-        <!-- Repository Container -->
-        <div id="repoContainer" class="repo-container grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Repository Container (Two Columns) -->
+        <div id="repoContainer" class="repo-container grid grid-cols-1 md:grid-cols-2 gap-8">
             <!-- Repository cards injected here -->
         </div>
 
-        <!-- Footer -->
-        <footer class="mt-12 text-center text-xs text-brand-slate uppercase tracking-widest font-semibold print-hide">
+        <footer class="mt-16 text-center text-xs text-brand-slate uppercase tracking-widest font-semibold print-hide">
             &copy; GitHub REST API Connection • Local Preview Service
         </footer>
     </div>
 
     <!-- Pinned Download Action Bar -->
     <div id="downloadBar" class="fixed bottom-0 left-0 right-0 bg-brand-midnight text-white shadow-2xl p-5 transform translate-y-full transition-transform duration-500 ease-in-out z-50 print-hide">
-        <div class="max-w-4xl mx-auto flex items-center justify-between">
+        <div class="max-w-6xl mx-auto flex items-center justify-between">
             <div class="flex items-center">
-                <div class="bg-brand-teal text-brand-midnight px-3 py-1 rounded-full font-bold mr-3" id="selectedCount">0</div>
+                <div class="bg-brand-teal text-brand-midnight px-4 py-1.5 rounded-full font-bold mr-4" id="selectedCount">0</div>
                 <span class="text-brand-aqua font-medium">repositories selected for bundle</span>
             </div>
-            <div class="flex space-x-4 items-center">
+            <div class="flex space-x-6 items-center">
                 <button id="clearSelectionBtn" class="text-sm font-bold text-brand-slate hover:text-white transition-colors">Clear All</button>
-                <button id="downloadBundleBtn" class="flex items-center px-8 py-3 bg-brand-teal text-brand-midnight rounded-xl font-bold hover:brightness-110 active:scale-95 transition-all shadow-lg">
+                <button id="downloadBundleBtn" class="flex items-center px-10 py-4 bg-brand-teal text-brand-midnight rounded-xl font-bold hover:brightness-110 active:scale-95 transition-all shadow-lg">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-5 h-5 mr-2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M7.5 12l4.5 4.5m0 0 4.5-4.5M12 3v13.5" />
                     </svg>
@@ -276,11 +318,9 @@
                 if (window.self !== window.top) {
                     const printWindow = window.open('', '_blank');
                     const html = document.documentElement.outerHTML;
-                    
                     printWindow.document.open();
                     printWindow.document.write(html);
                     printWindow.document.close();
-                    
                     setTimeout(() => {
                         printWindow.print();
                         textSpan.textContent = originalText;
@@ -317,8 +357,8 @@
         }
 
         function toggleRepoSelection(repoId, isSelected) {
-            if (isSelected) selectedRepoIds.add(repoId);
-            else selectedRepoIds.delete(repoId);
+            if (isSelected) selectedRepoIds.add(repoId.toString());
+            else selectedRepoIds.delete(repoId.toString());
             updateDownloadBar();
         }
 
@@ -366,15 +406,12 @@
 
         function updateFilters() {
             const query = searchRepoInput.value.toLowerCase().trim();
-            
             const filteredRepos = currentRepos.filter(repo => {
                 const matchesSearch = !query || 
                     repo.name.toLowerCase().includes(query) || 
                     (repo.description || '').toLowerCase().includes(query);
-                
                 const matchesTopic = !selectedTopic || 
                     (repo.topics && repo.topics.includes(selectedTopic));
-
                 return matchesSearch && matchesTopic;
             });
 
@@ -394,24 +431,20 @@
                     repo.topics.forEach(topic => topics.add(topic));
                 }
             });
-
             const sortedTopics = Array.from(topics).sort();
-            
             topicFilterContainer.innerHTML = `
-                <button class="topic-btn px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider transition-all border-2 ${!selectedTopic ? 'bg-brand-midnight text-white border-brand-midnight' : 'bg-white text-brand-slate border-brand-aqua hover:border-brand-teal hover:text-brand-teal'}" data-topic="null">
+                <button class="topic-btn px-5 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-all border-2 ${!selectedTopic ? 'bg-brand-midnight text-white border-brand-midnight' : 'bg-white text-brand-slate border-brand-aqua hover:border-brand-teal hover:text-brand-teal'}" data-topic="null">
                     All Topics
                 </button>
             `;
-
             sortedTopics.forEach(topic => {
                 const isActive = selectedTopic === topic;
                 const btn = document.createElement('button');
-                btn.className = `topic-btn px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider transition-all border-2 ${isActive ? 'bg-brand-midnight text-white border-brand-midnight' : 'bg-white text-brand-slate border-brand-aqua hover:border-brand-teal hover:text-brand-teal'}`;
+                btn.className = `topic-btn px-5 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-all border-2 ${isActive ? 'bg-brand-midnight text-white border-brand-midnight' : 'bg-white text-brand-slate border-brand-aqua hover:border-brand-teal hover:text-brand-teal'}`;
                 btn.textContent = topic;
                 btn.dataset.topic = topic;
                 topicFilterContainer.appendChild(btn);
             });
-
             document.querySelectorAll('.topic-btn').forEach(btn => {
                 btn.addEventListener('click', () => {
                     const topic = btn.dataset.topic === 'null' ? null : btn.dataset.topic;
@@ -424,26 +457,25 @@
         
         function displayStatus(message, className = 'text-brand-slate') {
             statusMessage.textContent = message;
-            statusMessage.className = `text-center text-sm font-bold uppercase tracking-wide mb-4 ${className}`;
+            statusMessage.className = `text-center text-sm font-bold uppercase tracking-wide mb-6 ${className}`;
             statusMessage.classList.remove('hidden');
         }
 
         function displayProfile(user) {
             const profileElement = document.getElementById('userProfile');
             if (user.message === 'Not Found' || !user.login) return;
-
             const name = user.name || user.login;
             profileElement.innerHTML = `
                 <div class="flex items-start">
-                    <img src="${user.avatar_url}" alt="Avatar" class="w-16 h-16 rounded-2xl mr-6 border-2 border-brand-teal shadow-sm">
+                    <img src="${user.avatar_url}" alt="Avatar" class="w-20 h-20 rounded-2xl mr-8 border-2 border-brand-teal shadow-md">
                     <div class="flex-grow">
-                        <h2 class="text-2xl font-bold text-brand-midnight leading-tight">${name}</h2>
-                        <div class="flex flex-wrap gap-x-4 gap-y-1 text-sm text-brand-slate font-medium mb-2">
-                            <span>@<a href="${user.html_url}" target="_blank" class="text-brand-teal hover:underline">${user.login}</a></span>
+                        <h2 class="text-3xl font-bold text-brand-midnight leading-tight">${name}</h2>
+                        <div class="flex flex-wrap gap-x-6 gap-y-2 text-sm text-brand-slate font-medium mb-3">
+                            <span>@<a href="${user.html_url}" target="_blank" class="text-brand-teal hover:underline font-bold">${user.login}</a></span>
                             ${user.location ? `<span>📍 ${user.location}</span>` : ''}
                             ${user.blog ? `<span>🌐 <a href="${user.blog.startsWith('http') ? user.blog : 'https://'+user.blog}" class="hover:text-brand-teal">${user.blog}</a></span>` : ''}
                         </div>
-                        <p class="text-sm text-brand-midnight opacity-80 max-w-2xl">${user.bio || ''}</p>
+                        <p class="text-base text-brand-midnight opacity-90 max-w-3xl">${user.bio || ''}</p>
                     </div>
                 </div>
             `;
@@ -456,38 +488,33 @@
         }
 
         async function fetchAndDisplayRepos(username) {
-            displayStatus(`Fetching secure repository data...`, 'text-brand-teal');
+            displayStatus(`Connecting to GitHub...`, 'text-brand-teal');
             try {
                 const [uResp, rResp] = await Promise.all([
                     fetch(`https://api.github.com/users/${username}`),
                     fetch(`https://api.github.com/users/${username}/repos?type=public&sort=pushed&per_page=100`)
                 ]);
-
                 if (uResp.status === 404) {
                     displayStatus(`Error: User not found.`, 'text-red-500');
                     return;
                 }
-
                 const userData = await uResp.json();
                 const repoData = await rResp.json();
-
                 currentRepos = repoData.filter(repo => 
                     repo.name !== EXCLUDED_REPO_NAME && 
                     repo.topics && 
                     repo.topics.length > 0
                 );
-                
                 displayProfile(userData);
-
                 if (currentRepos.length === 0) {
-                    displayStatus(`No public repositories with topics found.`, 'text-brand-slate');
+                    displayStatus(`No qualifying repositories found.`, 'text-brand-slate');
                 } else {
-                    displayStatus(`${currentRepos.length} Repositories Ready:`);
+                    displayStatus(`${currentRepos.length} Repositories Available:`);
                     renderTopics(currentRepos);
                     renderRepoCards(currentRepos);
                 }
             } catch (error) {
-                displayStatus(`Connection error.`, 'text-red-500');
+                displayStatus(`Network connection failed.`, 'text-red-500');
             }
         }
 
@@ -503,32 +530,32 @@
             const thumbnailUrl = `./previews/${repo.name}.png`;
 
             const topicsHtml = (repo.topics || []).map(t => 
-                `<span class="text-[9px] font-bold text-brand-teal border border-brand-teal px-1.5 py-0.5 rounded uppercase mr-1 mb-1">${t}</span>`
+                `<span class="text-[10px] font-bold text-brand-teal border border-brand-teal px-2 py-0.5 rounded uppercase mr-1.5 mb-1.5">${t}</span>`
             ).join('');
 
             card.innerHTML = `
-                <div class="absolute top-4 right-4 z-10 flex flex-col items-end print:hidden">
-                    <span class="selection-tooltip font-bold uppercase tracking-widest">Select to bundle</span>
-                    <input type="checkbox" data-id="${repo.id}" class="repo-checkbox w-6 h-6 rounded-lg cursor-pointer shadow-sm" ${isSelected ? 'checked' : ''}>
+                <div class="absolute top-4 right-4 z-10 flex items-center print:hidden h-7">
+                    <span class="selection-tooltip font-bold uppercase tracking-widest">Add to bundle</span>
+                    <input type="checkbox" data-id="${repo.id}" class="repo-checkbox w-7 h-7 rounded-lg cursor-pointer shadow-sm" ${isSelected ? 'checked' : ''}>
                 </div>
                 <a href="${targetUrl}" target="_blank" class="block aspect-video bg-brand-aqua overflow-hidden">
                     <img src="${thumbnailUrl}" alt="${repo.name}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" onerror="this.onerror=null; this.src='${placeholderUrl}';">
                 </a>
                 <div class="p-6 flex flex-col flex-grow">
                     <div class="flex-grow">
-                        <h2 class="text-lg font-bold text-brand-midnight group-hover:text-brand-teal transition-colors mb-2 truncate">${repo.name}</h2>
-                        <p class="text-xs text-brand-slate font-medium leading-relaxed mb-4 line-clamp-2 h-8">${repo.description || 'No project description available.'}</p>
+                        <h2 class="text-xl font-bold text-brand-midnight group-hover:text-brand-teal transition-colors mb-3 truncate">${repo.name}</h2>
+                        <p class="text-sm text-brand-slate font-medium leading-relaxed mb-6">${repo.description || 'No project description available.'}</p>
                     </div>
-                    <div class="mt-4 pt-4 border-t border-brand-aqua">
-                        <div class="flex flex-wrap mb-2">
+                    <div class="mt-auto pt-6 border-t border-brand-aqua">
+                        <div class="flex flex-wrap mb-4">
                             ${topicsHtml}
                         </div>
                         <div class="flex items-center justify-between">
                             <div class="flex flex-col">
-                                <span class="text-[10px] font-bold uppercase tracking-wider bg-brand-aqua text-brand-midnight px-2 py-1 rounded-md inline-block w-fit mb-1">${repo.language || 'Code'}</span>
-                                <span class="text-[8px] text-brand-slate hidden print:inline">URL: ${targetUrl}</span>
+                                <span class="text-[11px] font-bold uppercase tracking-wider bg-brand-aqua text-brand-midnight px-3 py-1.5 rounded-md inline-block w-fit mb-1">${repo.language || 'Code'}</span>
+                                <span class="text-[9px] text-brand-slate hidden print:inline">URL: ${targetUrl}</span>
                             </div>
-                            <span class="text-[10px] font-bold text-brand-slate uppercase">Updated ${timeSince(new Date(repo.pushed_at))}</span>
+                            <span class="text-[11px] font-bold text-brand-slate uppercase tracking-tight">Updated ${timeSince(new Date(repo.pushed_at))}</span>
                         </div>
                     </div>
                 </div>
@@ -547,11 +574,11 @@
         function timeSince(date) {
             const seconds = Math.floor((new Date() - date) / 1000);
             let interval = seconds / 31536000;
-            if (interval > 1) return Math.floor(interval) + "y";
+            if (interval > 1) return Math.floor(interval) + "y ago";
             interval = seconds / 2592000;
-            if (interval > 1) return Math.floor(interval) + "mo";
+            if (interval > 1) return Math.floor(interval) + "mo ago";
             interval = seconds / 86400;
-            if (interval > 1) return Math.floor(interval) + "d";
+            if (interval > 1) return Math.floor(interval) + "d ago";
             return "today";
         }
     </script>
