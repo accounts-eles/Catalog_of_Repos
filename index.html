@@ -525,7 +525,7 @@
             
             card.className = `repo-card relative bg-white rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 border-2 ${isSelected ? 'repo-card-selected' : 'border-brand-aqua'} flex flex-col overflow-hidden group`;
             
-            const targetUrl = `https://${repo.owner.login.toLowerCase()}.github.io/${repo.name}/`;
+            const targetUrl = `https://accounts-eles.github.io/${repo.name}/`;
             const placeholderUrl = `https://placehold.co/600x300/1f2a52/ffffff?text=${repo.name}`;
             const thumbnailUrl = `./previews/${repo.name}.png`;
 
@@ -543,7 +543,11 @@
                 </a>
                 <div class="p-6 flex flex-col flex-grow">
                     <div class="flex-grow">
-                        <h2 class="text-xl font-bold text-brand-midnight group-hover:text-brand-teal transition-colors mb-3 truncate">${repo.name}</h2>
+                        <h2 class="text-xl font-bold text-brand-midnight mb-3 truncate">
+                            <a href="${targetUrl}" target="_blank" class="hover:text-brand-teal transition-colors">
+                                ${repo.name}
+                            </a>
+                        </h2>
                         <p class="text-sm text-brand-slate font-medium leading-relaxed mb-6">${repo.description || 'No project description available.'}</p>
                     </div>
                     <div class="mt-auto pt-6 border-t border-brand-aqua">
