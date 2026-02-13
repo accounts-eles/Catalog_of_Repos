@@ -67,6 +67,14 @@
             visibility: visible;
             opacity: 1;
         }
+        /* Hide scrollbar for topic list but allow scrolling */
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
     </style>
 </head>
 <body class="bg-bg-light min-h-screen font-sans p-4 sm:p-8 pb-32">
@@ -110,15 +118,22 @@
             <!-- Profile content injected here -->
         </div>
         
-        <!-- Repository Search Filter & Select All -->
-        <div class="mb-6 flex flex-col sm:flex-row gap-4 items-center">
-             <div class="relative flex-grow w-full">
-                <input type="text" id="searchRepoInput" placeholder="Filter repositories..."
-                       class="w-full p-3 border border-brand-slate rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-teal focus:border-transparent bg-white shadow-sm transition-all text-brand-midnight">
-             </div>
-             <button id="selectAllBtn" class="whitespace-nowrap px-6 py-3 bg-white border border-brand-slate rounded-xl text-sm font-semibold text-brand-midnight hover:bg-brand-aqua hover:border-brand-teal transition-all shadow-sm">
-                Select All
-             </button>
+        <!-- Repository Search & Topic Filters -->
+        <div class="mb-8">
+            <div class="flex flex-col sm:flex-row gap-4 items-center mb-4">
+                 <div class="relative flex-grow w-full">
+                    <input type="text" id="searchRepoInput" placeholder="Filter repositories by name or description..."
+                           class="w-full p-3 border border-brand-slate rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-teal focus:border-transparent bg-white shadow-sm transition-all text-brand-midnight">
+                 </div>
+                 <button id="selectAllBtn" class="whitespace-nowrap px-6 py-3 bg-white border border-brand-slate rounded-xl text-sm font-semibold text-brand-midnight hover:bg-brand-aqua hover:border-brand-teal transition-all shadow-sm">
+                    Select All
+                 </button>
+            </div>
+            
+            <!-- Topic Filter Lozenges -->
+            <div id="topicFilterContainer" class="flex flex-wrap gap-2 items-center hide-scrollbar">
+                <!-- Topics injected here -->
+            </div>
         </div>
 
         <!-- Loading Indicator & Error Message -->
@@ -160,8 +175,10 @@
 
         let currentRepos = []; 
         let selectedRepoIds = new Set();
+        let selectedTopic = null;
 
         const repoContainer = document.getElementById('repoContainer');
+        const topicFilterContainer = document.getElementById('topicFilterContainer');
         const statusMessage = document.getElementById('statusMessage');
         const usernameDisplay = document.getElementById('hardcodedUsernameDisplay');
         const searchRepoInput = document.getElementById('searchRepoInput');
@@ -176,7 +193,7 @@
         };
 
         function setupListeners() {
-            searchRepoInput.addEventListener('input', handleSearch);
+            searchRepoInput.addEventListener('input', updateFilters);
             
             selectAllBtn.addEventListener('click', () => {
                 const visibleCheckboxes = document.querySelectorAll('.repo-checkbox');
@@ -251,20 +268,64 @@
             } catch (e) { console.error(`Failed: ${repo}/${filename}`); }
         }
 
-        function handleSearch() {
+        function updateFilters() {
             const query = searchRepoInput.value.toLowerCase().trim();
-            const filteredRepos = query ? currentRepos.filter(repo => {
-                return repo.name.toLowerCase().includes(query) || 
-                       (repo.description || '').toLowerCase().includes(query);
-            }) : currentRepos;
+            
+            const filteredRepos = currentRepos.filter(repo => {
+                const matchesSearch = !query || 
+                    repo.name.toLowerCase().includes(query) || 
+                    (repo.description || '').toLowerCase().includes(query);
+                
+                const matchesTopic = !selectedTopic || 
+                    (repo.topics && repo.topics.includes(selectedTopic));
+
+                return matchesSearch && matchesTopic;
+            });
 
             renderRepoCards(filteredRepos);
             
-            if (filteredRepos.length === 0 && query) {
-                displayStatus(`No results for "${query}".`, 'text-brand-slate');
+            if (filteredRepos.length === 0 && (query || selectedTopic)) {
+                displayStatus(`No results found.`, 'text-brand-slate');
             } else {
                 displayStatus(`${filteredRepos.length} results matching filter:`, 'text-brand-teal');
             }
+        }
+
+        function renderTopics(repos) {
+            // Get unique topics across all repositories
+            const topics = new Set();
+            repos.forEach(repo => {
+                if (repo.topics) {
+                    repo.topics.forEach(topic => topics.add(topic));
+                }
+            });
+
+            const sortedTopics = Array.from(topics).sort();
+            
+            topicFilterContainer.innerHTML = `
+                <button class="topic-btn px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider transition-all border-2 ${!selectedTopic ? 'bg-brand-midnight text-white border-brand-midnight' : 'bg-white text-brand-slate border-brand-aqua hover:border-brand-teal hover:text-brand-teal'}" data-topic="null">
+                    All Topics
+                </button>
+            `;
+
+            sortedTopics.forEach(topic => {
+                const isActive = selectedTopic === topic;
+                const btn = document.createElement('button');
+                btn.className = `topic-btn px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider transition-all border-2 ${isActive ? 'bg-brand-midnight text-white border-brand-midnight' : 'bg-white text-brand-slate border-brand-aqua hover:border-brand-teal hover:text-brand-teal'}`;
+                btn.textContent = topic;
+                btn.dataset.topic = topic;
+                topicFilterContainer.appendChild(btn);
+            });
+
+            // Add click listeners to buttons
+            document.querySelectorAll('.topic-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const topic = btn.dataset.topic === 'null' ? null : btn.dataset.topic;
+                    selectedTopic = topic;
+                    renderTopics(repos); // Rerender buttons to update active state
+                    updateFilters();
+                });
+            });
         }
         
         function displayStatus(message, className = 'text-brand-slate') {
@@ -314,13 +375,20 @@
                 const userData = await uResp.json();
                 const repoData = await rResp.json();
 
-                currentRepos = repoData.filter(repo => repo.name !== EXCLUDED_REPO_NAME);
+                // Requirement: Only display repos with at least one topic, and exclude Catalog_of_Repos
+                currentRepos = repoData.filter(repo => 
+                    repo.name !== EXCLUDED_REPO_NAME && 
+                    repo.topics && 
+                    repo.topics.length > 0
+                );
+                
                 displayProfile(userData);
 
                 if (currentRepos.length === 0) {
-                    displayStatus(`No public repositories found.`, 'text-brand-slate');
+                    displayStatus(`No public repositories with topics found.`, 'text-brand-slate');
                 } else {
-                    displayStatus(`${currentRepos.length} Repositories Available:`);
+                    displayStatus(`${currentRepos.length} Topic-Tagged Repositories:`);
+                    renderTopics(currentRepos);
                     renderRepoCards(currentRepos);
                 }
             } catch (error) {
@@ -339,6 +407,10 @@
             const placeholderUrl = `https://placehold.co/600x300/1f2a52/ffffff?text=${repo.name}`;
             const thumbnailUrl = `./previews/${repo.name}.png`;
 
+            const topicsHtml = (repo.topics || []).map(t => 
+                `<span class="text-[9px] font-bold text-brand-teal border border-brand-teal px-1.5 py-0.5 rounded uppercase mr-1 mb-1">${t}</span>`
+            ).join('');
+
             card.innerHTML = `
                 <div class="absolute top-4 right-4 z-10 flex flex-col items-end">
                     <span class="selection-tooltip font-bold uppercase tracking-widest">Select to bundle</span>
@@ -349,6 +421,9 @@
                 </a>
                 <div class="p-6 flex flex-col flex-grow">
                     <div class="flex-grow">
+                        <div class="flex flex-wrap mb-2">
+                            ${topicsHtml}
+                        </div>
                         <h2 class="text-lg font-bold text-brand-midnight group-hover:text-brand-teal transition-colors mb-2 truncate">${repo.name}</h2>
                         <p class="text-xs text-brand-slate font-medium leading-relaxed mb-4 line-clamp-2 h-8">${repo.description || 'No project description available.'}</p>
                     </div>
