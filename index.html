@@ -32,13 +32,12 @@
             width: 8px;
         }
         .repo-container::-webkit-scrollbar-thumb {
-            background-color: #abb5bf; /* brand-slate */
+            background-color: #abb5bf;
             border-radius: 4px;
         }
         .repo-container::-webkit-scrollbar-track {
-            background: #d2f0f0; /* brand-aqua */
+            background: #d2f0f0;
         }
-        /* Custom checkbox and selection styling */
         .repo-checkbox {
             accent-color: #00bec7;
         }
@@ -46,7 +45,6 @@
             border-color: #00bec7 !important;
             box-shadow: 0 0 0 2px #00bec7;
         }
-        /* Tooltip style for selection boxes */
         .selection-tooltip {
             visibility: hidden;
             background-color: #1f2a52;
@@ -67,7 +65,6 @@
             visibility: visible;
             opacity: 1;
         }
-        /* Hide scrollbar for topic list but allow scrolling */
         .hide-scrollbar::-webkit-scrollbar {
             display: none;
         }
@@ -75,13 +72,67 @@
             -ms-overflow-style: none;
             scrollbar-width: none;
         }
+
+        /* PRINT STYLES - Designed for Pretty PDF Generation */
+        @media print {
+            body {
+                background: white !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                color: #1f2a52;
+            }
+            header, section, #topicFilterContainer, #searchRepoInput, #selectAllBtn, 
+            #downloadBar, footer, .repo-checkbox, .selection-tooltip, .print-btn-container, .print-hide, #setupInstructions {
+                display: none !important;
+            }
+            #userProfile {
+                display: block !important;
+                border: none !important;
+                box-shadow: none !important;
+                margin-bottom: 2rem !important;
+                padding: 0 !important;
+            }
+            #userProfile img {
+                width: 80px !important;
+                height: 80px !important;
+            }
+            #repoContainer {
+                display: block !important;
+            }
+            .repo-card {
+                break-inside: avoid;
+                margin-bottom: 1.5rem !important;
+                border: 1px solid #d2f0f0 !important;
+                box-shadow: none !important;
+                display: flex !important;
+                flex-direction: row !important;
+                height: auto !important;
+            }
+            .repo-card a {
+                width: 30% !important;
+                height: 120px !important;
+            }
+            .repo-card .p-6 {
+                width: 70% !important;
+                padding: 1rem !important;
+            }
+            .repo-card h2 {
+                font-size: 1.25rem !important;
+                color: #1f2a52 !important;
+            }
+            .repo-card p {
+                -webkit-line-clamp: none !important;
+                height: auto !important;
+                font-size: 0.85rem !important;
+            }
+        }
     </style>
 </head>
 <body class="bg-bg-light min-h-screen font-sans p-4 sm:p-8 pb-32">
 
-    <div class="max-w-4xl mx-auto">
+    <div id="printableArea" class="max-w-4xl mx-auto">
         <!-- Header and Display Info -->
-        <header class="text-center mb-8 p-8 bg-white shadow-sm rounded-2xl border border-brand-aqua">
+        <header class="text-center mb-8 p-8 bg-white shadow-sm rounded-2xl border border-brand-aqua relative print-hide">
             <h1 class="text-3xl font-extrabold text-brand-midnight mb-2">Public Repositories Catalog</h1>
             <p class="text-brand-slate">
                 Displaying public repositories for:
@@ -89,37 +140,56 @@
             </p>
         </header>
 
-        <!-- Instructions Section -->
-        <section class="mb-8 bg-brand-midnight text-white p-6 rounded-2xl shadow-md">
-            <h2 class="text-lg font-bold mb-3 flex items-center">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5 mr-2 text-brand-teal">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
-                </svg>
-                How to Download Code
-            </h2>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
-                <div class="bg-white/10 p-4 rounded-xl border border-white/10">
-                    <span class="block text-brand-teal font-bold mb-1">Step 1: Select</span>
-                    Click the selection square in the top-right corner of any repository card you want to include.
-                </div>
-                <div class="bg-white/10 p-4 rounded-xl border border-white/10">
-                    <span class="block text-brand-teal font-bold mb-1">Step 2: Review</span>
-                    The blue bar at the bottom will track your selection count. You can clear it at any time.
-                </div>
-                <div class="bg-white/10 p-4 rounded-xl border border-white/10">
-                    <span class="block text-brand-teal font-bold mb-1">Step 3: Download</span>
-                    Click "Download Bundle" to fetch the <code class="bg-brand-midnight px-1 text-brand-teal">index.html</code> and <code class="bg-brand-midnight px-1 text-brand-teal">README.md</code> for each project.
-                </div>
-            </div>
-        </section>
-
         <!-- User Profile Display Section -->
         <div id="userProfile" class="bg-white p-6 rounded-2xl shadow-sm border border-brand-aqua mb-8 hidden">
             <!-- Profile content injected here -->
         </div>
+
+        <!-- Tools & Instructions Section (Moved below profile) -->
+        <section id="setupInstructions" class="mb-8 bg-brand-midnight text-white p-6 rounded-2xl shadow-md print-hide">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
+                <h3 class="text-xl font-bold flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6 mr-3 text-brand-teal">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                    </svg>
+                    How to download the code
+                </h3>
+                <button id="printBtn" class="print-btn-container flex items-center px-4 py-2 bg-brand-teal text-brand-midnight rounded-xl font-bold hover:brightness-110 active:scale-95 transition-all shadow-lg text-sm">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4 mr-2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6.72 13.89l-4.72-4.72a.75.75 0 010-1.06l4.72-4.72a.75.75 0 011.06 0l4.72 4.72a.75.75 0 010 1.06l-4.72 4.72a.75.75 0 01-1.06 0zM17.28 13.89l4.72-4.72a.75.75 0 000-1.06l-4.72-4.72a.75.75 0 00-1.06 0l-4.72 4.72a.75.75 0 000 1.06l4.72 4.72a.75.75 0 001.06 0z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v13.5m-3-3l3 3 3-3" />
+                    </svg>
+                    <span id="printBtnText">Print PDF Catalog</span>
+                </button>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <!-- Step 1 -->
+                <div class="bg-white/10 border border-white/20 p-5 rounded-xl">
+                    <h4 class="text-brand-teal font-bold text-sm mb-2 uppercase tracking-wide">Step 1: Select</h4>
+                    <p class="text-xs leading-relaxed text-slate-200">
+                        Click the selection square in the top-right corner of any repository card you want to include.
+                    </p>
+                </div>
+                <!-- Step 2 -->
+                <div class="bg-white/10 border border-white/20 p-5 rounded-xl">
+                    <h4 class="text-brand-teal font-bold text-sm mb-2 uppercase tracking-wide">Step 2: Review</h4>
+                    <p class="text-xs leading-relaxed text-slate-200">
+                        The blue bar at the bottom will track your selection count. You can clear it at any time.
+                    </p>
+                </div>
+                <!-- Step 3 -->
+                <div class="bg-white/10 border border-white/20 p-5 rounded-xl">
+                    <h4 class="text-brand-teal font-bold text-sm mb-2 uppercase tracking-wide">Step 3: Download</h4>
+                    <p class="text-xs leading-relaxed text-slate-200">
+                        Click "Download Bundle" to fetch the <code class="bg-brand-midnight px-1 rounded text-brand-teal">index.html</code> and <code class="bg-brand-midnight px-1 rounded text-brand-teal">README.md</code> for each project.
+                    </p>
+                </div>
+            </div>
+        </section>
         
         <!-- Repository Search & Topic Filters -->
-        <div class="mb-8">
+        <div class="mb-8 print-hide">
             <div class="flex flex-col sm:flex-row gap-4 items-center mb-4">
                  <div class="relative flex-grow w-full">
                     <input type="text" id="searchRepoInput" placeholder="Filter repositories by name or description..."
@@ -130,7 +200,6 @@
                  </button>
             </div>
             
-            <!-- Topic Filter Lozenges -->
             <div id="topicFilterContainer" class="flex flex-wrap gap-2 items-center hide-scrollbar">
                 <!-- Topics injected here -->
             </div>
@@ -145,13 +214,13 @@
         </div>
 
         <!-- Footer -->
-        <footer class="mt-12 text-center text-xs text-brand-slate uppercase tracking-widest font-semibold">
+        <footer class="mt-12 text-center text-xs text-brand-slate uppercase tracking-widest font-semibold print-hide">
             &copy; GitHub REST API Connection • Local Preview Service
         </footer>
     </div>
 
     <!-- Pinned Download Action Bar -->
-    <div id="downloadBar" class="fixed bottom-0 left-0 right-0 bg-brand-midnight text-white shadow-2xl p-5 transform translate-y-full transition-transform duration-500 ease-in-out z-50">
+    <div id="downloadBar" class="fixed bottom-0 left-0 right-0 bg-brand-midnight text-white shadow-2xl p-5 transform translate-y-full transition-transform duration-500 ease-in-out z-50 print-hide">
         <div class="max-w-4xl mx-auto flex items-center justify-between">
             <div class="flex items-center">
                 <div class="bg-brand-teal text-brand-midnight px-3 py-1 rounded-full font-bold mr-3" id="selectedCount">0</div>
@@ -185,6 +254,7 @@
         const downloadBar = document.getElementById('downloadBar');
         const selectedCountDisp = document.getElementById('selectedCount');
         const selectAllBtn = document.getElementById('selectAllBtn');
+        const printBtn = document.getElementById('printBtn');
 
         window.onload = () => {
             usernameDisplay.textContent = HARDCODED_USERNAME;
@@ -195,6 +265,29 @@
         function setupListeners() {
             searchRepoInput.addEventListener('input', updateFilters);
             
+            printBtn.addEventListener('click', () => {
+                const textSpan = document.getElementById('printBtnText');
+                const originalText = textSpan.textContent;
+                textSpan.textContent = "Generating...";
+
+                if (window.self !== window.top) {
+                    const printWindow = window.open('', '_blank');
+                    const html = document.documentElement.outerHTML;
+                    
+                    printWindow.document.open();
+                    printWindow.document.write(html);
+                    printWindow.document.close();
+                    
+                    setTimeout(() => {
+                        printWindow.print();
+                        textSpan.textContent = originalText;
+                    }, 1000);
+                } else {
+                    window.print();
+                    textSpan.textContent = originalText;
+                }
+            });
+
             selectAllBtn.addEventListener('click', () => {
                 const visibleCheckboxes = document.querySelectorAll('.repo-checkbox');
                 const allChecked = Array.from(visibleCheckboxes).every(cb => cb.checked);
@@ -292,7 +385,6 @@
         }
 
         function renderTopics(repos) {
-            // Get unique topics across all repositories
             const topics = new Set();
             repos.forEach(repo => {
                 if (repo.topics) {
@@ -317,12 +409,11 @@
                 topicFilterContainer.appendChild(btn);
             });
 
-            // Add click listeners to buttons
             document.querySelectorAll('.topic-btn').forEach(btn => {
                 btn.addEventListener('click', () => {
                     const topic = btn.dataset.topic === 'null' ? null : btn.dataset.topic;
                     selectedTopic = topic;
-                    renderTopics(repos); // Rerender buttons to update active state
+                    renderTopics(repos);
                     updateFilters();
                 });
             });
@@ -340,14 +431,16 @@
 
             const name = user.name || user.login;
             profileElement.innerHTML = `
-                <div class="flex items-center">
-                    <img src="${user.avatar_url}" alt="Avatar" class="w-16 h-16 rounded-2xl mr-5 border-2 border-brand-teal shadow-sm">
+                <div class="flex items-start">
+                    <img src="${user.avatar_url}" alt="Avatar" class="w-16 h-16 rounded-2xl mr-6 border-2 border-brand-teal shadow-sm">
                     <div class="flex-grow">
-                        <h2 class="text-xl font-bold text-brand-midnight">${name}</h2>
-                        <p class="text-brand-slate text-sm font-medium mb-1">
-                            @<a href="${user.html_url}" target="_blank" class="text-brand-teal hover:underline">${user.login}</a>
-                        </p>
-                        <p class="text-xs text-brand-midnight opacity-80 max-w-md">${user.bio || ''}</p>
+                        <h2 class="text-2xl font-bold text-brand-midnight leading-tight">${name}</h2>
+                        <div class="flex flex-wrap gap-x-4 gap-y-1 text-sm text-brand-slate font-medium mb-2">
+                            <span>@<a href="${user.html_url}" target="_blank" class="text-brand-teal hover:underline">${user.login}</a></span>
+                            ${user.location ? `<span>📍 ${user.location}</span>` : ''}
+                            ${user.blog ? `<span>🌐 <a href="${user.blog.startsWith('http') ? user.blog : 'https://'+user.blog}" class="hover:text-brand-teal">${user.blog}</a></span>` : ''}
+                        </div>
+                        <p class="text-sm text-brand-midnight opacity-80 max-w-2xl">${user.bio || ''}</p>
                     </div>
                 </div>
             `;
@@ -375,7 +468,6 @@
                 const userData = await uResp.json();
                 const repoData = await rResp.json();
 
-                // Requirement: Only display repos with at least one topic, and exclude Catalog_of_Repos
                 currentRepos = repoData.filter(repo => 
                     repo.name !== EXCLUDED_REPO_NAME && 
                     repo.topics && 
@@ -387,7 +479,7 @@
                 if (currentRepos.length === 0) {
                     displayStatus(`No public repositories with topics found.`, 'text-brand-slate');
                 } else {
-                    displayStatus(`${currentRepos.length} Topic-Tagged Repositories:`);
+                    displayStatus(`${currentRepos.length} Repositories Ready:`);
                     renderTopics(currentRepos);
                     renderRepoCards(currentRepos);
                 }
@@ -412,7 +504,7 @@
             ).join('');
 
             card.innerHTML = `
-                <div class="absolute top-4 right-4 z-10 flex flex-col items-end">
+                <div class="absolute top-4 right-4 z-10 flex flex-col items-end print:hidden">
                     <span class="selection-tooltip font-bold uppercase tracking-widest">Select to bundle</span>
                     <input type="checkbox" data-id="${repo.id}" class="repo-checkbox w-6 h-6 rounded-lg cursor-pointer shadow-sm" ${isSelected ? 'checked' : ''}>
                 </div>
@@ -428,7 +520,10 @@
                         <p class="text-xs text-brand-slate font-medium leading-relaxed mb-4 line-clamp-2 h-8">${repo.description || 'No project description available.'}</p>
                     </div>
                     <div class="flex items-center justify-between mt-4 pt-4 border-t border-brand-aqua">
-                        <span class="text-[10px] font-bold uppercase tracking-wider bg-brand-aqua text-brand-midnight px-2 py-1 rounded-md">${repo.language || 'Code'}</span>
+                        <div class="flex flex-col">
+                            <span class="text-[10px] font-bold uppercase tracking-wider bg-brand-aqua text-brand-midnight px-2 py-1 rounded-md inline-block w-fit mb-1">${repo.language || 'Code'}</span>
+                            <span class="text-[8px] text-brand-slate hidden print:inline">URL: ${targetUrl}</span>
+                        </div>
                         <span class="text-[10px] font-bold text-brand-slate uppercase">Updated ${timeSince(new Date(repo.pushed_at))}</span>
                     </div>
                 </div>
